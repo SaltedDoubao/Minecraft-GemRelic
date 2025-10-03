@@ -1,0 +1,100 @@
+# 宝石配置文件
+# 定义各种宝石的属性和特性
+
+gems:
+  ruby:
+    # 物品材质
+    material: REDSTONE
+    # 显示名称
+    display: "§c红宝石"
+    # 物品描述
+    lore:
+      - "§7一颗闪耀着红色光芒的宝石"
+      - "§7可以为装备增加攻击属性"
+    # 属性池配置
+    attributes:
+      - type: "attack"
+        name: "攻击力"
+        min: 2.0
+        max: 6.0
+      - type: "crit_rate"
+        name: "暴击率"
+        min: 1.0
+        max: 5.0
+    # 升级配置
+    upgrade:
+      # 升级消耗材料
+      cost_material: DIAMOND
+      cost_amount: 1
+      # 升级成功率
+      success_chance: 0.8
+      # 属性增长倍率
+      growth_rate: 1.2
+
+  sapphire:
+    material: LAPIS_LAZULI
+    display: "§9蓝宝石"
+    lore:
+      - "§7一颗散发着蓝色光芒的宝石"
+      - "§7可以为装备增加防御属性"
+    attributes:
+      - type: "defense"
+        name: "防御力"
+        min: 3.0
+        max: 8.0
+      - type: "health"
+        name: "生命值"
+        min: 2.0
+        max: 6.0
+    upgrade:
+      cost_material: DIAMOND
+      cost_amount: 1
+      success_chance: 0.8
+      growth_rate: 1.2
+
+  emerald:
+    material: EMERALD
+    display: "§a翡翠"
+    lore:
+      - "§7一颗充满生机的绿色宝石"
+      - "§7可以为装备增加生命恢复属性"
+    attributes:
+      - type: "health_regen"
+        name: "生命恢复"
+        min: 1.0
+        max: 3.0
+      - type: "health"
+        name: "生命值"
+        min: 4.0
+        max: 10.0
+    upgrade:
+      cost_material: DIAMOND
+      cost_amount: 1
+      success_chance: 0.8
+      growth_rate: 1.2
+
+  diamond_gem:
+    material: DIAMOND
+    display: "§b钻石宝石"
+    lore:
+      - "§7极为稀有的钻石宝石"
+      - "§7拥有多种强力属性"
+    attributes:
+      - type: "attack"
+        name: "攻击力"
+        min: 4.0
+        max: 10.0
+      - type: "defense"
+        name: "防御力"
+        min: 4.0
+        max: 10.0
+      - type: "crit_rate"
+        name: "暴击率"
+        min: 2.0
+        max: 8.0
+    upgrade:
+      cost_material: NETHERITE_INGOT
+      cost_amount: 1
+      success_chance: 0.6
+      growth_rate: 1.5
+

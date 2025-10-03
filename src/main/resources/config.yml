@@ -1,0 +1,53 @@
+# GemRelic 插件配置文件
+# 宝石镶嵌与圣遗物属性系统
+
+# 插件基本设置
+settings:
+  # 是否启用调试模式
+  debug: false
+  
+  # 默认语言
+  language: zh_CN
+  
+  # 是否在玩家加入时发送欢迎消息
+  send_welcome_message: false
+
+# 宝石系统设置
+gem:
+  # 宝石最大等级
+  max_level: 100
+  
+  # 是否允许宝石升级失败时损失宝石
+  lose_gem_on_fail: false
+  
+  # 升级失败时是否保留消耗的材料
+  keep_material_on_fail: false
+
+# 镶嵌系统设置（后续扩展）
+socket:
+  # 每件装备的最大宝石槽位数
+  max_slots: 3
+  
+  # 是否允许卸下宝石
+  allow_remove: true
+  
+  # 卸下宝石时是否需要消耗物品
+  remove_cost_enabled: false
+  
+# 属性系统设置（后续扩展）
+attribute:
+  # 是否启用属性加成系统
+  enabled: true
+  
+  # 属性计算方式：additive（加法）或 multiplicative（乘法）
+  calculation_mode: additive
+  
+# 消息配置
+messages:
+  prefix: "§6[GemRelic]§r "
+  no_permission: "§c你没有权限执行此操作！"
+  reload_success: "§a配置重载成功！"
+  gem_received: "§a你获得了一颗宝石！"
+  gem_upgrade_success: "§a宝石升级成功！"
+  gem_upgrade_fail: "§c宝石升级失败！"
+

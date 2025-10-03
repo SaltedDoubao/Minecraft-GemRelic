@@ -1,0 +1,32 @@
+name: GemRelic
+version: '1.0.0'
+main: com.lymc.gemrelic.GemRelicPlugin
+api-version: '1.20'
+prefix: GemRelic
+authors: [ LYMC ]
+description: 宝石镶嵌与圣遗物属性系统插件
+
+commands:
+  gem:
+    description: 宝石系统主命令
+    usage: /<command> <give|upgrade|info> [args]
+    permission: gemrelic.command.gem
+    permission-message: §c你没有权限使用此命令！
+
+permissions:
+  gemrelic.command.gem:
+    description: 允许使用gem命令
+    default: op
+  gemrelic.command.gem.give:
+    description: 允许给予宝石
+    default: op
+  gemrelic.command.gem.upgrade:
+    description: 允许升级宝石
+    default: true
+  gemrelic.admin:
+    description: 管理员权限
+    default: op
+    children:
+      gemrelic.command.gem: true
+      gemrelic.command.gem.give: true
+
