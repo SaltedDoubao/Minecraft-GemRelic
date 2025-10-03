@@ -12,7 +12,7 @@
 ### 当前已实现（v1.0.0）
 
 ✅ **宝石系统**
-- 多种宝石类型（红宝石、蓝宝石、翡翠、钻石宝石）
+- 多种宝石类型
 - 每个宝石拥有独特的属性池
 - 随机生成属性值
 - 宝石等级系统
@@ -105,7 +105,7 @@ Minecraft-GemRelic/
 
 ```bash
 # 克隆项目
-git clone https://github.com/yourusername/Minecraft-GemRelic.git
+git clone https://github.com/SaltedDoubao/Minecraft-GemRelic.git
 cd Minecraft-GemRelic
 
 # 使用 Maven 编译
@@ -219,28 +219,7 @@ gems:
 
 ## 贡献指南
 
-欢迎提交 Issue 和 Pull Request！
-
-### 代码规范
-
-- 使用 4 个空格缩进
-- 所有公共方法必须有 JavaDoc 注释
-- 遵循现有的代码风格
-- 提交前确保代码能够编译
-
-## 许可证
-
-本项目采用自定义许可证，详见 LICENSE 文件。
-
-## 作者
-
-**LYMC**
-
-## 致谢
-
-- [Paper](https://papermc.io/) - 高性能 Minecraft 服务器
-- 原神 - 圣遗物系统设计灵感
-- Minecraft 插件开发社区
+欢迎提交 [Issue](../../issues) 和 [Pull Request](../../pulls)！
 
 ---
 
