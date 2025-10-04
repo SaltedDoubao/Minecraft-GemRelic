@@ -149,11 +149,11 @@ gems:
 ### 基本命令
 
 ```bash
-# 给玩家 Steve 一颗 1 级红宝石
-/gemrelic give Steve ruby 1
+# 给玩家 一颗 1 级红宝石
+/gemrelic give @s ruby 1
 
-# 给玩家 Alex 一颗 5 级钻石宝石
-/gemrelic give Alex diamond_gem 5
+# 给玩家 一颗 5 级钻石宝石
+/gemrelic give @s diamond_gem 5
 
 # 查看手持宝石的信息
 /gemrelic info
@@ -222,7 +222,3 @@ gems:
 欢迎提交 [Issue](../../issues) 和 [Pull Request](../../pulls)！
 
 ---
-
-**版本**: 1.0.0  
-**最后更新**: 2025-10-03
-
