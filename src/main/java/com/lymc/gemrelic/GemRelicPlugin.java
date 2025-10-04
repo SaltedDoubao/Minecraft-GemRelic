@@ -68,8 +68,8 @@ public class GemRelicPlugin extends JavaPlugin {
     private void registerCommands() {
         getLogger().info("正在注册命令...");
         GemCommand gemCommand = new GemCommand(this);
-        getCommand("gem").setExecutor(gemCommand);
-        getCommand("gem").setTabCompleter(gemCommand);
+        getCommand("gemrelic").setExecutor(gemCommand);
+        getCommand("gemrelic").setTabCompleter(gemCommand);
         getLogger().info("命令注册完成！");
     }
 

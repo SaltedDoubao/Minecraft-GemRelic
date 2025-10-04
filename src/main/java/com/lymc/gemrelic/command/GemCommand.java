@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 
 /**
  * Gem 命令处理器
- * 处理 /gem 相关的所有子命令
+ * 处理 /gemrelic 相关的所有子命令
  */
 public class GemCommand implements CommandExecutor, TabCompleter {
     
@@ -57,16 +57,16 @@ public class GemCommand implements CommandExecutor, TabCompleter {
 
     /**
      * 处理 give 子命令
-     * 用法: /gem give <玩家> <宝石类型> [等级]
+     * 用法: /gemrelic give <玩家> <宝石类型> [等级]
      */
     private boolean handleGive(CommandSender sender, String[] args) {
-        if (!sender.hasPermission("gemrelic.command.gem.give")) {
+        if (!sender.hasPermission("gemrelic.command.gemrelic.give")) {
             sender.sendMessage("§c你没有权限执行此命令！");
             return true;
         }
 
         if (args.length < 3) {
-            sender.sendMessage("§c用法: /gem give <玩家> <宝石类型> [等级]");
+            sender.sendMessage("§c用法: /gemrelic give <玩家> <宝石类型> [等级]");
             return true;
         }
 
@@ -96,7 +96,7 @@ public class GemCommand implements CommandExecutor, TabCompleter {
         ItemStack gem = gemManager.createGem(gemType, level);
         if (gem == null) {
             sender.sendMessage("§c未找到宝石类型: " + gemType);
-            sender.sendMessage("§7使用 /gem list 查看可用的宝石类型");
+            sender.sendMessage("§7使用 /gemrelic list 查看可用的宝石类型");
             return true;
         }
 
@@ -109,7 +109,7 @@ public class GemCommand implements CommandExecutor, TabCompleter {
 
     /**
      * 处理 info 子命令
-     * 用法: /gem info
+     * 用法: /gemrelic info
      */
     private boolean handleInfo(CommandSender sender, String[] args) {
         if (!(sender instanceof Player)) {
@@ -150,7 +150,7 @@ public class GemCommand implements CommandExecutor, TabCompleter {
 
     /**
      * 处理 reload 子命令
-     * 用法: /gem reload
+     * 用法: /gemrelic reload
      */
     private boolean handleReload(CommandSender sender) {
         if (!sender.hasPermission("gemrelic.admin")) {
@@ -167,7 +167,7 @@ public class GemCommand implements CommandExecutor, TabCompleter {
 
     /**
      * 处理 list 子命令
-     * 用法: /gem list
+     * 用法: /gemrelic list
      */
     private boolean handleList(CommandSender sender) {
         sender.sendMessage("§6§l========== 可用宝石类型 ==========");
@@ -187,11 +187,11 @@ public class GemCommand implements CommandExecutor, TabCompleter {
      */
     private void sendHelpMessage(CommandSender sender) {
         sender.sendMessage("§6§l========== GemRelic 帮助 ==========");
-        sender.sendMessage("§e/gem give <玩家> <类型> [等级] §7- 给予宝石");
-        sender.sendMessage("§e/gem info §7- 查看手持宝石信息");
-        sender.sendMessage("§e/gem list §7- 列出所有宝石类型");
-        sender.sendMessage("§e/gem reload §7- 重载配置（需要管理员权限）");
-        sender.sendMessage("§e/gem help §7- 显示此帮助信息");
+        sender.sendMessage("§e/gemrelic give <玩家> <类型> [等级] §7- 给予宝石");
+        sender.sendMessage("§e/gemrelic info §7- 查看手持宝石信息");
+        sender.sendMessage("§e/gemrelic list §7- 列出所有宝石类型");
+        sender.sendMessage("§e/gemrelic reload §7- 重载配置（需要管理员权限）");
+        sender.sendMessage("§e/gemrelic help §7- 显示此帮助信息");
         sender.sendMessage("§6§l==================================");
     }
 
