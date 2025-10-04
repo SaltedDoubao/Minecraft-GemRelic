@@ -1,11 +1,11 @@
 # GemRelic - 宝石镶嵌与圣遗物属性系统
 
-![Minecraft](https://img.shields.io/badge/Minecraft-1.20.1-green)
-![Paper](https://img.shields.io/badge/Paper-1.20.1-blue)
+![Minecraft](https://img.shields.io/badge/Minecraft-1.20.x-green)
+![Paper](https://img.shields.io/badge/Paper-1.20.x-blue)
 ![Java](https://img.shields.io/badge/Java-17-orange)
 ![License](https://img.shields.io/badge/License-Custom-red)
 
-一个为 Minecraft Paper 1.20.1 服务器开发的宝石镶嵌与属性系统插件，灵感来源于原神的圣遗物系统。
+一个为 Minecraft Paper 1.20.x 服务器开发的宝石镶嵌与属性系统插件，灵感来源于原神的圣遗物系统。
 
 ## 功能特性
 
@@ -19,10 +19,10 @@
 - 使用 PersistentDataContainer (PDC) 存储宝石数据
 
 ✅ **命令系统**
-- `/gem give <玩家> <宝石类型> [等级]` - 给予玩家宝石
-- `/gem info` - 查看手持宝石的详细信息
-- `/gem list` - 列出所有可用的宝石类型
-- `/gem reload` - 重载插件配置
+- `/gemrelic give <玩家> <宝石类型> [等级]` - 给予玩家宝石
+- `/gemrelic info` - 查看手持宝石的详细信息
+- `/gemrelic list` - 列出所有可用的宝石类型
+- `/gemrelic reload` - 重载插件配置
 - 完整的 Tab 补全支持
 
 ✅ **配置系统**
@@ -99,7 +99,7 @@ Minecraft-GemRelic/
 
 - Java 17 或更高版本
 - Maven 3.6+
-- Paper 1.20.1 服务器
+- Paper 1.20.x 服务器
 
 ### 编译插件
 
@@ -150,19 +150,19 @@ gems:
 
 ```bash
 # 给玩家 Steve 一颗 1 级红宝石
-/gem give Steve ruby 1
+/gemrelic give Steve ruby 1
 
 # 给玩家 Alex 一颗 5 级钻石宝石
-/gem give Alex diamond_gem 5
+/gemrelic give Alex diamond_gem 5
 
 # 查看手持宝石的信息
-/gem info
+/gemrelic info
 
 # 列出所有可用的宝石类型
-/gem list
+/gemrelic list
 
 # 重载配置
-/gem reload
+/gemrelic reload
 ```
 
 ## 开发文档
@@ -212,7 +212,7 @@ gems:
 
 | 权限节点 | 说明 | 默认 |
 |---------|------|------|
-| `gemrelic.command.gem` | 使用 /gem 命令 | OP |
+| `gemrelic.command.gem` | 使用 /gemrelic 命令 | OP |
 | `gemrelic.command.gem.give` | 给予宝石 | OP |
 | `gemrelic.command.gem.upgrade` | 升级宝石 | true |
 | `gemrelic.admin` | 管理员权限（包含所有权限） | OP |
