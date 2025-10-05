@@ -21,6 +21,11 @@ gems:
         name: "暴击率"
         min: 1.0
         max: 5.0
+    # 可镶嵌位置（helmet：头盔, chestplate：胸甲, leggings：护腿, boots：靴子）
+    # 如果不设置此项，则默认可以镶嵌在所有位置
+    socket_positions:
+      - helmet
+      - chestplate
     # 升级配置
     upgrade:
       # 升级消耗材料
@@ -46,6 +51,10 @@ gems:
         name: "生命值"
         min: 2.0
         max: 6.0
+    # 防御类宝石适合镶嵌在胸甲和护腿上
+    socket_positions:
+      - chestplate
+      - leggings
     upgrade:
       cost_material: DIAMOND
       cost_amount: 1
@@ -67,6 +76,10 @@ gems:
         name: "生命值"
         min: 4.0
         max: 10.0
+    # 生命类宝石适合镶嵌在头盔和靴子上
+    socket_positions:
+      - helmet
+      - boots
     upgrade:
       cost_material: DIAMOND
       cost_amount: 1
@@ -92,9 +105,38 @@ gems:
         name: "暴击率"
         min: 2.0
         max: 8.0
+    # 钻石宝石是万能宝石，可以镶嵌在所有位置（不设置socket_positions则默认全部）
     upgrade:
       cost_material: NETHERITE_INGOT
       cost_amount: 1
       success_chance: 0.6
       growth_rate: 1.5
+
+  topaz:
+    material: GLOWSTONE_DUST
+    display: "§6黄玉"
+    lore:
+      - "§7散发着金色光芒的宝石"
+      - "§7专门为武器提供锋利属性"
+    attributes:
+      - type: "attack"
+        name: "攻击力"
+        min: 5.0
+        max: 12.0
+      - type: "crit_damage"
+        name: "暴击伤害"
+        min: 10.0
+        max: 25.0
+      - type: "attack_speed"
+        name: "攻击速度"
+        min: 3.0
+        max: 8.0
+    # 黄玉专门用于武器镶嵌
+    socket_positions:
+      - weapon
+    upgrade:
+      cost_material: GOLD_INGOT
+      cost_amount: 2
+      success_chance: 0.75
+      growth_rate: 1.3
 

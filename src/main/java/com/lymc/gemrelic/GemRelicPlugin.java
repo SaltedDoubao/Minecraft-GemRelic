@@ -2,6 +2,7 @@ package com.lymc.gemrelic;
 
 import com.lymc.gemrelic.command.GemCommand;
 import com.lymc.gemrelic.listener.PlayerListener;
+import com.lymc.gemrelic.listener.SocketGUIListener;
 import com.lymc.gemrelic.manager.GemManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -16,6 +17,7 @@ public class GemRelicPlugin extends JavaPlugin {
     
     private static GemRelicPlugin instance;
     private GemManager gemManager;
+    private SocketGUIListener socketGUIListener;
 
     @Override
     public void onEnable() {
@@ -25,7 +27,7 @@ public class GemRelicPlugin extends JavaPlugin {
         getLogger().info("==============================");
         getLogger().info("  GemRelic 正在启动...");
         getLogger().info("  版本: " + getDescription().getVersion());
-        getLogger().info("  作者: LYMC");
+        getLogger().info("  作者: SaltedDoubao");
         getLogger().info("==============================");
 
         // 创建数据文件夹
@@ -79,6 +81,8 @@ public class GemRelicPlugin extends JavaPlugin {
     private void registerListeners() {
         getLogger().info("正在注册事件监听器...");
         getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
+        socketGUIListener = new SocketGUIListener(this);
+        getServer().getPluginManager().registerEvents(socketGUIListener, this);
         getLogger().info("事件监听器注册完成！");
     }
 
@@ -98,6 +102,15 @@ public class GemRelicPlugin extends JavaPlugin {
      */
     public GemManager getGemManager() {
         return gemManager;
+    }
+
+    /**
+     * 获取镶嵌GUI监听器
+     *
+     * @return 镶嵌GUI监听器
+     */
+    public SocketGUIListener getSocketGUIListener() {
+        return socketGUIListener;
     }
 
     /**

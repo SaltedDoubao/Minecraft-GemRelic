@@ -48,6 +48,8 @@ public class GemCommand implements CommandExecutor, TabCompleter {
                 return handleReload(sender);
             case "list":
                 return handleList(sender);
+            case "socket":
+                return handleSocket(sender, args);
             case "help":
             default:
                 sendHelpMessage(sender);
@@ -183,6 +185,29 @@ public class GemCommand implements CommandExecutor, TabCompleter {
     }
 
     /**
+     * 处理 socket 子命令
+     * 用法: /gemrelic socket
+     */
+    private boolean handleSocket(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player)) {
+            sender.sendMessage("§c此命令只能由玩家执行！");
+            return true;
+        }
+
+        Player player = (Player) sender;
+        
+        // 打开镶嵌界面
+        if (plugin.getSocketGUIListener() != null) {
+            plugin.getSocketGUIListener().getSocketGUI().openSocketGUI(player);
+            player.sendMessage("§a已打开宝石镶嵌界面");
+        } else {
+            player.sendMessage("§c镶嵌系统尚未初始化，请稍后再试");
+        }
+        
+        return true;
+    }
+
+    /**
      * 发送帮助信息
      */
     private void sendHelpMessage(CommandSender sender) {
@@ -190,6 +215,7 @@ public class GemCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage("§e/gemrelic give <玩家> <类型> [等级] §7- 给予宝石");
         sender.sendMessage("§e/gemrelic info §7- 查看手持宝石信息");
         sender.sendMessage("§e/gemrelic list §7- 列出所有宝石类型");
+        sender.sendMessage("§e/gemrelic socket §7- 打开宝石镶嵌界面");
         sender.sendMessage("§e/gemrelic reload §7- 重载配置（需要管理员权限）");
         sender.sendMessage("§e/gemrelic help §7- 显示此帮助信息");
         sender.sendMessage("§6§l==================================");
@@ -201,7 +227,7 @@ public class GemCommand implements CommandExecutor, TabCompleter {
 
         if (args.length == 1) {
             // 第一级子命令补全
-            List<String> subCommands = Arrays.asList("give", "info", "list", "reload", "help");
+            List<String> subCommands = Arrays.asList("give", "info", "list", "socket", "reload", "help");
             return subCommands.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
                     .collect(Collectors.toList());

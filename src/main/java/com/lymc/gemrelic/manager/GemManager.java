@@ -4,6 +4,7 @@ import com.lymc.gemrelic.GemRelicPlugin;
 import com.lymc.gemrelic.model.AttributeData;
 import com.lymc.gemrelic.model.GemData;
 import com.lymc.gemrelic.model.GemInstance;
+import com.lymc.gemrelic.model.SocketPosition;
 import com.lymc.gemrelic.model.UpgradeConfig;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -31,6 +32,7 @@ public class GemManager {
     private NamespacedKey gemTypeKey;
     private NamespacedKey gemLevelKey;
     private NamespacedKey gemAttributesKey;
+    private NamespacedKey socketedGemKey;
 
     /**
      * 构造函数
@@ -51,6 +53,7 @@ public class GemManager {
         gemTypeKey = new NamespacedKey(plugin, "gem_type");
         gemLevelKey = new NamespacedKey(plugin, "gem_level");
         gemAttributesKey = new NamespacedKey(plugin, "gem_attributes");
+        socketedGemKey = new NamespacedKey(plugin, "socketed_gem");
     }
 
     /**
@@ -121,7 +124,25 @@ public class GemManager {
             }
         }
 
-        return new GemData(gemId, material, displayName, lore, attributes, upgradeConfig);
+        // 加载镶嵌位置配置
+        List<SocketPosition> socketPositions = new ArrayList<>();
+        if (section.contains("socket_positions")) {
+            List<String> positionList = section.getStringList("socket_positions");
+            for (String positionId : positionList) {
+                SocketPosition position = SocketPosition.getById(positionId);
+                if (position != null) {
+                    socketPositions.add(position);
+                } else {
+                    plugin.getLogger().warning("未知的镶嵌位置: " + positionId + " (宝石: " + gemId + ")");
+                }
+            }
+        }
+        // 如果没有配置镶嵌位置，默认允许所有位置
+        if (socketPositions.isEmpty()) {
+            socketPositions.addAll(Arrays.asList(SocketPosition.values()));
+        }
+
+        return new GemData(gemId, material, displayName, lore, attributes, upgradeConfig, socketPositions);
     }
 
     /**
@@ -289,6 +310,208 @@ public class GemManager {
         }
 
         return new GemInstance(gemType, level, attributes);
+    }
+
+    /**
+     * 检查装备是否已镶嵌宝石
+     *
+     * @param equipment 装备物品
+     * @return 是否已镶嵌宝石
+     */
+    public boolean hasSocketedGem(ItemStack equipment) {
+        if (equipment == null || !equipment.hasItemMeta()) {
+            return false;
+        }
+        
+        ItemMeta meta = equipment.getItemMeta();
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        return pdc.has(socketedGemKey, PersistentDataType.STRING);
+    }
+
+    /**
+     * 获取装备已镶嵌的宝石信息
+     *
+     * @param equipment 装备物品
+     * @return 宝石信息字符串，格式为 "gemType:level:attributes"
+     */
+    public String getSocketedGemInfo(ItemStack equipment) {
+        if (equipment == null || !equipment.hasItemMeta()) {
+            return null;
+        }
+        
+        ItemMeta meta = equipment.getItemMeta();
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        return pdc.get(socketedGemKey, PersistentDataType.STRING);
+    }
+
+    /**
+     * 为装备镶嵌宝石
+     *
+     * @param equipment 装备物品
+     * @param gemInstance 宝石实例
+     * @return 镶嵌后的装备物品
+     */
+    public ItemStack socketGemToEquipment(ItemStack equipment, GemInstance gemInstance) {
+        if (equipment == null || gemInstance == null) {
+            return equipment;
+        }
+
+        ItemStack result = equipment.clone();
+        ItemMeta meta = result.getItemMeta();
+        if (meta == null) {
+            return equipment;
+        }
+
+        // 获取宝石数据
+        GemData gemData = getGemData(gemInstance.getGemType());
+        if (gemData == null) {
+            return equipment;
+        }
+
+        // 添加宝石信息到lore
+        List<String> lore = meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
+        lore.add("§7");
+        lore.add("§6§l镶嵌的宝石:");
+        lore.add("  §e" + gemData.getDisplayName() + " §7[Lv." + gemInstance.getLevel() + "]");
+        
+        // 添加宝石属性
+        gemInstance.getAttributes().forEach((type, value) -> {
+            String attrName = getAttributeName(gemData, type);
+            lore.add(String.format("    §7%s: §a+%.1f", attrName, value));
+        });
+        
+        meta.setLore(lore);
+
+        // 存储镶嵌信息到PDC
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        StringBuilder gemInfo = new StringBuilder();
+        gemInfo.append(gemInstance.getGemType()).append(":")
+               .append(gemInstance.getLevel()).append(":");
+        
+        boolean first = true;
+        for (Map.Entry<String, Double> entry : gemInstance.getAttributes().entrySet()) {
+            if (!first) {
+                gemInfo.append(";");
+            }
+            gemInfo.append(entry.getKey()).append(":").append(entry.getValue());
+            first = false;
+        }
+        
+        pdc.set(socketedGemKey, PersistentDataType.STRING, gemInfo.toString());
+        result.setItemMeta(meta);
+        
+        return result;
+    }
+
+    /**
+     * 从装备中拆卸宝石
+     *
+     * @param equipment 装备物品
+     * @return 拆卸的宝石物品，如果没有宝石则返回null
+     */
+    public ItemStack unsocketGemFromEquipment(ItemStack equipment) {
+        if (!hasSocketedGem(equipment)) {
+            return null;
+        }
+
+        String gemInfo = getSocketedGemInfo(equipment);
+        if (gemInfo == null) {
+            return null;
+        }
+
+        // 解析宝石信息
+        String[] parts = gemInfo.split(":");
+        if (parts.length < 3) {
+            return null;
+        }
+
+        String gemType = parts[0];
+        int level;
+        try {
+            level = Integer.parseInt(parts[1]);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+
+        // 解析属性
+        Map<String, Double> attributes = new HashMap<>();
+        if (parts.length > 2 && !parts[2].isEmpty()) {
+            for (String attrPair : parts[2].split(";")) {
+                String[] attrParts = attrPair.split(":");
+                if (attrParts.length == 2) {
+                    try {
+                        attributes.put(attrParts[0], Double.parseDouble(attrParts[1]));
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+            }
+        }
+
+        // 创建宝石实例
+        GemInstance gemInstance = new GemInstance(gemType, level, attributes);
+        GemData gemData = getGemData(gemType);
+        if (gemData == null) {
+            return null;
+        }
+
+        return createGemItemStack(gemData, gemInstance);
+    }
+
+    /**
+     * 从装备中移除宝石信息（不返回宝石）
+     *
+     * @param equipment 装备物品
+     * @return 移除宝石信息后的装备
+     */
+    public ItemStack removeSocketedGemInfo(ItemStack equipment) {
+        if (!hasSocketedGem(equipment)) {
+            return equipment;
+        }
+
+        ItemStack result = equipment.clone();
+        ItemMeta meta = result.getItemMeta();
+        if (meta == null) {
+            return equipment;
+        }
+
+        // 移除PDC中的宝石信息
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        pdc.remove(socketedGemKey);
+
+        // 移除lore中的宝石信息
+        if (meta.hasLore()) {
+            List<String> lore = new ArrayList<>(meta.getLore());
+            List<String> newLore = new ArrayList<>();
+            boolean inGemSection = false;
+            
+            for (String line : lore) {
+                if ("§6§l镶嵌的宝石:".equals(line)) {
+                    inGemSection = true;
+                    continue;
+                }
+                
+                if (inGemSection) {
+                    // 如果遇到其他章节或结束，停止删除
+                    if (line.startsWith("§6§l") && !"§6§l镶嵌的宝石:".equals(line)) {
+                        inGemSection = false;
+                        newLore.add(line);
+                    }
+                    // 跳过宝石相关的行
+                } else {
+                    newLore.add(line);
+                }
+            }
+            
+            // 移除连续的空行
+            while (!newLore.isEmpty() && "§7".equals(newLore.get(newLore.size() - 1))) {
+                newLore.remove(newLore.size() - 1);
+            }
+            
+            meta.setLore(newLore);
+        }
+
+        result.setItemMeta(meta);
+        return result;
     }
 
     /**
