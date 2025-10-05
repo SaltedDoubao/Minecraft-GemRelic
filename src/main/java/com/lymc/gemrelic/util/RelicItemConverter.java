@@ -42,8 +42,22 @@ public class RelicItemConverter {
             // 设置描述
             List<String> lore = new ArrayList<>();
             lore.add("§7等级: §f" + relic.getLevel());
-            lore.add("§7稀有度: " + getRarityColor(relic.getRarity()) + relic.getRarity().getStars() + "★");
             lore.add("§7");
+            
+            // 套装效果预览
+            if (set != null) {
+                lore.add("§6套装效果:");
+                lore.add("  §e两件套");
+                for (String desc : set.getTwoPieceEffects()) {
+                    lore.add("    §7- " + desc);
+                }
+                lore.add("  §e四件套");
+                for (String desc : set.getFourPieceEffects()) {
+                    lore.add("    §7- " + desc);
+                }
+                lore.add("§7");
+            }
+            
             lore.add("§6主词条:");
             lore.add("  " + relic.getMainStat().getType().getDisplay() + ": §a" + 
                 String.format("%.1f", relic.getMainStat().getValue()) + 

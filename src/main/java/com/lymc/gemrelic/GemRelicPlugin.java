@@ -4,7 +4,8 @@ import com.lymc.gemrelic.listener.PlayerListener;
 import com.lymc.gemrelic.manager.RelicManager;
 import com.lymc.gemrelic.command.RelicCommand;
 import com.lymc.gemrelic.listener.RelicGUIListener;
-import com.lymc.gemrelic.manager.RelicProfileManager;
+import com.lymc.gemrelic.storage.IRelicProfileManager;
+import com.lymc.gemrelic.storage.StorageFactory;
 import com.lymc.gemrelic.service.RelicEffectService;
 import com.lymc.gemrelic.service.StatAggregationService;
 import com.lymc.gemrelic.service.AttributePlusBridge;
@@ -22,7 +23,8 @@ public class GemRelicPlugin extends JavaPlugin {
     
     private static GemRelicPlugin instance;
     private RelicManager relicManager;
-    private RelicProfileManager relicProfileManager;
+    private IRelicProfileManager relicProfileManager;
+    private StorageFactory storageFactory;
     private RelicEffectService relicEffectService;
     private StatAggregationService statAggregationService;
     private AttributePlusBridge attributePlusBridge;
@@ -61,6 +63,13 @@ public class GemRelicPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        getLogger().info("GemRelic 正在关闭...");
+        
+        // 保存所有在线玩家的圣遗物数据
+        if (relicProfileManager != null) {
+            relicProfileManager.saveAll();
+        }
+        
         getLogger().info("GemRelic 已关闭，感谢使用！");
     }
 
@@ -69,12 +78,22 @@ public class GemRelicPlugin extends JavaPlugin {
      */
     private void initializeManagers() {
         getLogger().info("正在初始化管理器...");
+        
+        // 初始化基础工具
+        relicItemConverter = new RelicItemConverter(this);
+
+        // 初始化存储系统
+        storageFactory = new StorageFactory(this);
+        getLogger().info("存储模式: " + storageFactory.getStorageModeDisplayName());
+        getLogger().info("存储描述: " + storageFactory.getStorageModeDescription());
+        
+        // 初始化各个管理器
         relicManager = new RelicManager(this);
-        relicProfileManager = new RelicProfileManager(this);
+        relicProfileManager = storageFactory.createProfileManager();
         relicEffectService = new RelicEffectService(this);
         statAggregationService = new StatAggregationService();
         attributePlusBridge = new AttributePlusBridge(this);
-        relicItemConverter = new RelicItemConverter(this);
+        
         getLogger().info("管理器初始化完成！");
     }
 
@@ -111,7 +130,8 @@ public class GemRelicPlugin extends JavaPlugin {
     }
 
     public RelicManager getRelicManager() { return relicManager; }
-    public RelicProfileManager getRelicProfileManager() { return relicProfileManager; }
+    public IRelicProfileManager getRelicProfileManager() { return relicProfileManager; }
+    public StorageFactory getStorageFactory() { return storageFactory; }
     public RelicEffectService getRelicEffectService() { return relicEffectService; }
     public StatAggregationService getStatAggregationService() { return statAggregationService; }
     public AttributePlusBridge getAttributePlusBridge() { return attributePlusBridge; }
@@ -120,6 +140,11 @@ public class GemRelicPlugin extends JavaPlugin {
     // 仅重载圣遗物配置
     public void reloadRelicConfig() {
         relicManager = new RelicManager(this);
+        // 重载后可能需要更新存储系统
+        if (storageFactory != null) {
+            StorageFactory.StorageMode newMode = storageFactory.getStorageMode();
+            getLogger().info("配置重载后的存储模式: " + storageFactory.getStorageModeDisplayName());
+        }
     }
 }
 

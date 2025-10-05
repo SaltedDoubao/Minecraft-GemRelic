@@ -91,6 +91,7 @@ public class RelicEquipmentGUI {
     private List<String> getSetBonusLore(PlayerRelicProfile profile) {
         List<String> lore = new ArrayList<>();
         lore.add("§7当前套装件数:");
+        lore.add("§7");
         
         Map<String, Integer> counts = new java.util.HashMap<>();
         for (RelicData relic : profile.getEquipped().values()) {
@@ -103,15 +104,45 @@ public class RelicEquipmentGUI {
             for (Map.Entry<String, Integer> entry : counts.entrySet()) {
                 RelicSet set = plugin.getRelicManager().getRelicSet(entry.getKey());
                 String name = set != null ? set.getName() : entry.getKey();
-                lore.add("§e" + name + ": §f" + entry.getValue() + "件");
+                int count = entry.getValue();
                 
-                // 显示激活的套装效果
-                if (entry.getValue() >= 2) {
-                    lore.add("  §a✓ 2件套装效果已激活");
+                lore.add("§e" + name + " [" + count + "/4]:");
+                
+                // 两件套效果
+                if (count >= 2) {
+                    lore.add("  §a两件套 §7[已激活]");
+                    if (set != null) {
+                        for (String desc : set.getTwoPieceEffects()) {
+                            lore.add("    §a- " + desc);
+                        }
+                    }
+                } else {
+                    lore.add("  §8两件套 §7[未激活]");
+                    if (set != null) {
+                        for (String desc : set.getTwoPieceEffects()) {
+                            lore.add("    §8- " + desc);
+                        }
+                    }
                 }
-                if (entry.getValue() >= 4) {
-                    lore.add("  §a✓ 4件套装效果已激活");
+                
+                // 四件套效果
+                if (count >= 4) {
+                    lore.add("  §a四件套 §7[已激活]");
+                    if (set != null) {
+                        for (String desc : set.getFourPieceEffects()) {
+                            lore.add("    §a- " + desc);
+                        }
+                    }
+                } else {
+                    lore.add("  §8四件套 §7[未激活]");
+                    if (set != null) {
+                        for (String desc : set.getFourPieceEffects()) {
+                            lore.add("    §8- " + desc);
+                        }
+                    }
                 }
+                
+                lore.add("§7");
             }
         }
         
@@ -131,7 +162,6 @@ public class RelicEquipmentGUI {
             List<String> lore = new ArrayList<>();
             lore.add("§7部位: §f" + getSlotDisplayName(relic.getSlot()));
             lore.add("§7等级: §f" + relic.getLevel());
-            lore.add("§7稀有度: " + getRarityColor(relic.getRarity()) + relic.getRarity().getStars() + "★");
             lore.add("§7");
             lore.add("§6主词条:");
             lore.add("  " + relic.getMainStat().getType().getDisplay() + ": §a" + 

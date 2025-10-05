@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 
@@ -30,6 +31,10 @@ public class RelicGUIListener implements Listener {
         // 主菜单
         if (title.equals(RelicMainMenuGUI.TITLE)) {
             e.setCancelled(true);
+            // 只处理顶部GUI的点击，不处理玩家背包的点击
+            if (e.getClickedInventory() == null || e.getClickedInventory().getHolder() != null) {
+                return;
+            }
             handleMainMenuClick(player, e);
             return;
         }
@@ -37,15 +42,75 @@ public class RelicGUIListener implements Listener {
         // 装备页面
         if (title.equals(RelicEquipmentGUI.TITLE)) {
             e.setCancelled(true);
+            // 只处理顶部GUI的点击
+            if (e.getClickedInventory() == null || e.getClickedInventory().getHolder() != null) {
+                return;
+            }
             handleEquipmentClick(player, e);
             return;
         }
         
         // 仓库界面
         if (title.startsWith(RelicWarehouseGUI.TITLE_PREFIX)) {
+            if (e.getClickedInventory() == null) return;
+
+            // 顶部GUI点击：完全接管
+            if (e.getClickedInventory().getHolder() == null) {
+                e.setCancelled(true);
+
+                // 若鼠标携带圣遗物并点击仓库区域，则放入仓库
+                if (isWarehouseSlot(e.getSlot())) {
+                    ItemStack cursor = e.getCursor();
+                    if (plugin.getRelicItemConverter().isRelicItem(cursor)) {
+                        RelicData relic = plugin.getRelicItemConverter().fromItemStack(cursor);
+                        if (relic != null) {
+                            PlayerRelicProfile profile = plugin.getRelicProfileManager().get(player);
+                            profile.addToWarehouse(relic);
+                            player.setItemOnCursor(null);
+                            plugin.getRelicProfileManager().save(player);
+                            // 刷新当前页面
+                            handleRefreshWarehouse(player, title);
+                            return;
+                        }
+                    }
+                }
+
+                handleWarehouseClick(player, e, title);
+                return;
+            }
+
+            // 底部背包点击：支持Shift-点击快速存入仓库
+            if (e.getClickedInventory().getHolder() != null) {
+                ItemStack clicked = e.getCurrentItem();
+                if (clicked != null && plugin.getRelicItemConverter().isRelicItem(clicked)
+                        && (e.getClick() == ClickType.SHIFT_LEFT || e.getClick() == ClickType.SHIFT_RIGHT)) {
+                    e.setCancelled(true);
+                    RelicData relic = plugin.getRelicItemConverter().fromItemStack(clicked);
+                    if (relic != null) {
+                        PlayerRelicProfile profile = plugin.getRelicProfileManager().get(player);
+                        profile.addToWarehouse(relic);
+                        // 清空该格物品
+                        e.getClickedInventory().setItem(e.getSlot(), null);
+                        plugin.getRelicProfileManager().save(player);
+                        // 刷新当前页面
+                        handleRefreshWarehouse(player, title);
+                    }
+                }
+                return;
+            }
+        }
+    }
+    
+    @EventHandler
+    public void onDrag(InventoryDragEvent e) {
+        if (!(e.getWhoClicked() instanceof Player)) return;
+        String title = e.getView().getTitle();
+        
+        // 阻止在圣遗物GUI中的拖动操作
+        if (title.equals(RelicMainMenuGUI.TITLE) || 
+            title.equals(RelicEquipmentGUI.TITLE) || 
+            title.startsWith(RelicWarehouseGUI.TITLE_PREFIX)) {
             e.setCancelled(true);
-            handleWarehouseClick(player, e, title);
-            return;
         }
     }
     
@@ -78,6 +143,7 @@ public class RelicGUIListener implements Listener {
             if (equipped != null) {
                 profile.unequip(targetSlot);
                 plugin.getRelicEffectService().refresh(player, profile);
+                plugin.getRelicProfileManager().save(player);
                 player.sendMessage("§a已卸下 " + getSlotDisplayName(targetSlot) + " 部位的圣遗物到仓库");
                 // 刷新装备页面
                 new RelicEquipmentGUI(plugin).open(player);
@@ -114,6 +180,7 @@ public class RelicGUIListener implements Listener {
         // 从背包放入仓库
         if (slot == RelicWarehouseGUI.getPutInSlot()) {
             handlePutInFromInventory(player, profile, currentFilter, currentPage);
+            plugin.getRelicProfileManager().save(player);
             return;
         }
         
@@ -131,6 +198,7 @@ public class RelicGUIListener implements Listener {
                     // 左键：装备
                     profile.equip(relic);
                     plugin.getRelicEffectService().refresh(player, profile);
+                    plugin.getRelicProfileManager().save(player);
                     player.sendMessage("§a已装备 " + getSlotDisplayName(relic.getSlot()) + ": " + 
                         plugin.getRelicManager().getRelicSet(relic.getSetId()).getName());
                 } else if (clickType == ClickType.RIGHT) {
@@ -139,6 +207,7 @@ public class RelicGUIListener implements Listener {
                     if (player.getInventory().firstEmpty() != -1) {
                         profile.removeFromWarehouse(relic);
                         player.getInventory().addItem(relicItem);
+                        plugin.getRelicProfileManager().save(player);
                         player.sendMessage("§a已取出圣遗物到背包");
                     } else {
                         player.sendMessage("§c背包已满，无法取出");
@@ -183,11 +252,18 @@ public class RelicGUIListener implements Listener {
         
         if (putInCount > 0) {
             player.sendMessage("§a已将 " + putInCount + " 件圣遗物放入仓库");
+            plugin.getRelicProfileManager().save(player);
             // 刷新仓库页面
             new RelicWarehouseGUI(plugin).open(player, currentFilter, currentPage);
         } else {
             player.sendMessage("§c背包中没有圣遗物物品");
         }
+    }
+
+    private void handleRefreshWarehouse(Player player, String title) {
+        RelicSlot currentFilter = parseCurrentFilter(title);
+        int currentPage = parseCurrentPage(title);
+        new RelicWarehouseGUI(plugin).open(player, currentFilter, currentPage);
     }
 
     private RelicSlot parseCurrentFilter(String title) {

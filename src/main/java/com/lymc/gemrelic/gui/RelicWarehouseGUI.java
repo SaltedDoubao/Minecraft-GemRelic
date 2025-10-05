@@ -81,6 +81,18 @@ public class RelicWarehouseGUI {
             profile.getWarehouseBySlot(filterSlot) : 
             profile.getWarehouse();
         
+        // 如果仓库为空，显示提示物品
+        if (items.isEmpty() && page == 0) {
+            ItemStack hint = createGuiItem(Material.BARRIER, "§c§l仓库为空", 
+                List.of("§7仓库中没有圣遗物", "§7", 
+                       "§e获取圣遗物的方法:", 
+                       "§71. 执行 §e/relic test §7获取测试圣遗物",
+                       "§72. 将圣遗物物品放入背包后使用 §e放入按钮",
+                       "§73. 在背包中 §eShift-点击 §7圣遗物快速放入"));
+            inv.setItem(WAREHOUSE_SLOTS[10], hint); // 中央位置显示提示
+            return;
+        }
+        
         int startIndex = page * WAREHOUSE_SLOTS.length;
         int endIndex = Math.min(startIndex + WAREHOUSE_SLOTS.length, items.size());
         

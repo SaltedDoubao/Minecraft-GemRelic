@@ -17,8 +17,22 @@ relic:
   # 属性计算方式：additive（加法）或 multiplicative（乘法）
   calculation_mode: additive
   
-  # 仓库最大容量
+  # 仓库最大容量（仅YAML存储模式有效）
   warehouse_max_size: 1000
+  
+  # 存储方式：
+  # - YAML: 传统YAML文件存储（向后兼容）
+  # - INVENTORY: 独立的圣遗物存储系统（推荐，类似末影箱原理但不占用末影箱）
+  storage_mode: INVENTORY
+  
+  # 独立存储设置
+  inventory_storage:
+    # 是否自动迁移YAML数据到独立存储
+    auto_migrate: true
+    # 迁移后是否保留YAML备份
+    keep_backup: true
+    # 存储文件格式：DAT（二进制，类似Minecraft原生） 或 YAML（文本格式）
+    file_format: DAT
   
 # 消息配置
 messages:

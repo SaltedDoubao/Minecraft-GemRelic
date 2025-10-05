@@ -1,8 +1,8 @@
 package com.lymc.gemrelic.listener;
 
 import com.lymc.gemrelic.GemRelicPlugin;
-import com.lymc.gemrelic.manager.RelicProfileManager;
 import com.lymc.gemrelic.relic.PlayerRelicProfile;
+import com.lymc.gemrelic.storage.IRelicProfileManager;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -28,9 +28,13 @@ public class PlayerListener implements Listener {
      */
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
+        // 执行自动迁移（如果需要）
+        plugin.getStorageFactory().performAutoMigration(event.getPlayer());
+        
         // 加载玩家圣遗物档案
-        RelicProfileManager pm = plugin.getRelicProfileManager();
+        IRelicProfileManager pm = plugin.getRelicProfileManager();
         PlayerRelicProfile profile = pm.get(event.getPlayer());
+        
         // 应用套装效果
         plugin.getRelicEffectService().refresh(event.getPlayer(), profile);
         plugin.getLogger().info("已加载圣遗物档案: " + event.getPlayer().getName() + " 装备件数=" + profile.getEquipped().size());
