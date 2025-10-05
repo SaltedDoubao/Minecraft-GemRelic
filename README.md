@@ -1,70 +1,68 @@
-# GemRelic - 宝石镶嵌与圣遗物属性系统
+# GemRelic - 圣遗物属性系统
 
 ![Minecraft](https://img.shields.io/badge/Minecraft-1.20.x-green)
 ![Paper](https://img.shields.io/badge/Paper-1.20.x-blue)
 ![Java](https://img.shields.io/badge/Java-17-orange)
 ![License](https://img.shields.io/badge/License-Custom-red)
 
-一个为 Minecraft Paper 1.20.x 服务器开发的宝石镶嵌与属性系统插件，灵感来源于原神的圣遗物系统。
+一个为 Minecraft Paper 1.20.x 服务器开发的圣遗物属性系统插件，高度还原《原神》的圣遗物核心玩法。
 
 ## 功能特性
 
 ### 当前已实现（v1.0.0）
 
-✅ **宝石系统**
-- 多种宝石类型
-- 每个宝石拥有独特的属性池
-- 随机生成属性值
-- 宝石等级系统
-- 使用 PersistentDataContainer (PDC) 存储宝石数据
+✅ **圣遗物5部位系统**
+- 生之花 (FLOWER) - 固定生命值主词条
+- 死之羽 (PLUME) - 固定攻击力主词条  
+- 时之沙 (SANDS) - 可变主词条（攻击%/生命%/防御%等）
+- 空之杯 (GOBLET) - 可变主词条（元素伤害/攻击%等）
+- 理之冠 (CIRCLET) - 可变主词条（暴击率/暴击伤害等）
+
+✅ **套装效果系统**
+- 2件套装效果自动激活
+- 4件套装效果自动激活
+- 实时属性修饰应用（原版Attribute系统）
+- 套装件数统计与显示
+
+✅ **GUI界面系统**
+- **主菜单**: 系统总入口，连接各功能页面
+- **装备页面**: 查看已装备圣遗物，支持卸下操作
+- **仓库页面**: 管理仓库圣遗物，支持装备/取出到背包
+- 分页浏览、部位筛选、操作提示
+
+✅ **数据存储系统**
+- 玩家档案YAML持久化 (`plugins/GemRelic/players/<uuid>.yml`)
+- 圣遗物↔ItemStack双向转换
+- PersistentDataContainer嵌入式存储
 
 ✅ **命令系统**
-- `/gemrelic give <玩家> <宝石类型> [等级]` - 给予玩家宝石
-- `/gemrelic info` - 查看手持宝石的详细信息
-- `/gemrelic list` - 列出所有可用的宝石类型
-- `/gemrelic reload` - 重载插件配置
+- `/relic open` - 打开圣遗物系统主菜单
+- `/relic list` - 查看已配置的套装
+- `/relic test` - 添加测试圣遗物（调试用）
+- `/relic reload` - 重载配置
 - 完整的 Tab 补全支持
 
-✅ **配置系统**
-- `gems.yml` - 宝石定义配置
-- `config.yml` - 插件主配置
-- 支持热重载
-
-✅ **代码规范**
-- 完整的 JavaDoc 注释
-- 清晰的项目结构
-- 遵循 Paper API 最佳实践
-- 模块化设计，易于扩展
+✅ **AttributePlus兼容**
+- 软依赖支持，自动检测AP插件
+- 配置化属性映射（暴击率、攻速、移速等）
+- 优雅降级（未安装AP时仍正常工作）
 
 ### 规划中的功能
 
-🔲 **宝石升级系统**
-- 消耗材料升级宝石
-- 升级成功率机制
-- 属性成长系统
+🔲 **随机生成系统**
+- pools.yml - 主副词条权重配置
+- rarity.yml - 1-5星稀有度与等级上限
+- drops.yml - 掉落源配置
 
-🔲 **镶嵌系统**
-- 装备宝石槽位
-- 宝石安装/卸下
-- 宝石属性应用到装备
+🔲 **强化系统**  
+- 经验曲线与升级
+- +5级跳副词条机制
+- 圣遗物分解与精粹
 
-🔲 **属性加成系统**
-- 攻击力加成
-- 防御力加成
-- 暴击率/暴击伤害
-- 生命值/生命恢复
-- 其他自定义属性
-
-🔲 **GUI系统**
-- 宝石镶嵌界面
-- 宝石升级界面
-- 宝石背包界面
-
-🔲 **扩展功能**
-- 套装效果
-- PlaceholderAPI 支持
-- 多语言支持
-- 数据库存储
+🔲 **高级功能**
+- 圣遗物锁定防护
+- 套装图鉴与收集进度
+- 副词条重掷与洗练
 
 ## 项目结构
 
@@ -75,20 +73,34 @@ Minecraft-GemRelic/
 │       ├── java/com/lymc/gemrelic/
 │       │   ├── GemRelicPlugin.java          # 插件主类
 │       │   ├── command/
-│       │   │   └── GemCommand.java          # 命令处理器
+│       │   │   └── RelicCommand.java        # 圣遗物命令处理器
+│       │   ├── gui/
+│       │   │   ├── RelicMainMenuGUI.java    # 主菜单界面
+│       │   │   ├── RelicEquipmentGUI.java   # 装备管理界面
+│       │   │   └── RelicWarehouseGUI.java   # 仓库管理界面
 │       │   ├── listener/
-│       │   │   └── PlayerListener.java      # 事件监听器
+│       │   │   ├── PlayerListener.java      # 玩家事件监听器
+│       │   │   └── RelicGUIListener.java    # GUI交互监听器
 │       │   ├── manager/
-│       │   │   └── GemManager.java          # 宝石管理器
-│       │   └── model/
-│       │       ├── GemData.java             # 宝石定义数据
-│       │       ├── GemInstance.java         # 宝石实例
-│       │       ├── AttributeData.java       # 属性数据
-│       │       └── UpgradeConfig.java       # 升级配置
+│       │   │   ├── RelicManager.java        # 圣遗物管理器
+│       │   │   └── RelicProfileManager.java # 玩家档案管理器
+│       │   ├── relic/
+│       │   │   ├── RelicData.java           # 圣遗物数据模型
+│       │   │   ├── RelicSlot.java           # 部位枚举
+│       │   │   ├── RelicRarity.java         # 稀有度枚举
+│       │   │   ├── RelicStatType.java       # 属性类型枚举
+│       │   │   └── PlayerRelicProfile.java  # 玩家档案
+│       │   ├── service/
+│       │   │   ├── RelicEffectService.java  # 套装效果服务
+│       │   │   └── AttributePlusBridge.java # AP兼容桥接
+│       │   └── util/
+│       │       ├── RelicIO.java             # 序列化工具
+│       │       └── RelicItemConverter.java  # 物品转换器
 │       └── resources/
 │           ├── plugin.yml                   # 插件描述文件
 │           ├── config.yml                   # 主配置文件
-│           └── gems.yml                     # 宝石配置文件
+│           └── relics/
+│               └── sets.yml                 # 套装定义文件
 ├── pom.xml                                  # Maven 配置
 └── README.md                                # 项目说明
 ```
@@ -122,100 +134,128 @@ mvn clean package
 
 ### 配置说明
 
-#### gems.yml
+#### relics/sets.yml
 
-定义宝石类型和属性：
+定义套装类型和效果：
 
 ```yaml
-gems:
-  ruby:                              # 宝石ID
-    material: REDSTONE               # 物品材质
-    display: "§c红宝石"              # 显示名称
-    lore:                            # 物品描述
-      - "§7一颗闪耀着红色光芒的宝石"
-    attributes:                      # 属性池
-      - type: "attack"               # 属性类型
-        name: "攻击力"               # 属性名称
-        min: 2.0                     # 最小值
-        max: 6.0                     # 最大值
+sets:
+  gladiator:                         # 套装ID
+    id: gladiator                    # 内部ID
+    name: "角斗士的终幕礼"            # 套装显示名称
+    bonuses:                         # 套装效果
+      two_piece_desc:                # 2件套装效果描述
+        - "攻击力+18%"
+      four_piece_desc:               # 4件套装效果描述  
+        - "持剑/双手剑/长柄武器时，普通攻击造成的伤害提升35%"
 ```
 
 #### config.yml
 
-主配置文件，包含插件的全局设置。
+主配置文件，包含圣遗物系统设置和AttributePlus集成配置：
+
+```yaml
+# 圣遗物系统设置
+relic:
+  enabled: true                      # 是否启用系统
+  warehouse_max_size: 1000           # 仓库最大容量
+
+# AttributePlus集成
+integration:
+  attributeplus:
+    enabled: true                    # 是否启用AP集成
+    stat_map:                        # 属性映射表
+      CRIT_RATE: crit_chance         # 暴击率 → AP暴击概率
+      ATK_SPEED: attack_speed        # 攻速 → AP攻击速度
+```
 
 ## 使用示例
 
-### 基本命令
+### 基本操作流程
 
 ```bash
-# 给玩家 一颗 1 级红宝石
-/gemrelic give @s ruby 1
+# 1. 添加测试圣遗物到仓库
+/relic test
 
-# 给玩家 一颗 5 级钻石宝石
-/gemrelic give @s diamond_gem 5
+# 2. 打开圣遗物系统主菜单
+/relic open
 
-# 查看手持宝石的信息
-/gemrelic info
+# 3. GUI操作：
+# - 点击"装备管理" → 查看当前穿戴
+# - 点击"仓库管理" → 管理圣遗物
+```
 
-# 列出所有可用的宝石类型
-/gemrelic list
+### GUI操作指南
 
-# 重载配置
-/gemrelic reload
+#### 主菜单操作
+- 🛡️ **装备管理** - 查看和管理已装备的5件圣遗物
+- 📦 **仓库管理** - 管理仓库中的圣遗物
+
+#### 装备页面操作  
+- **点击已装备圣遗物** → 卸下到仓库
+- **查看套装加成** → 右侧显示当前套装件数与效果
+
+#### 仓库页面操作
+- **左键圣遗物** → 装备到对应部位
+- **右键圣遗物** → 取出到背包
+- **筛选按钮** → 按部位筛选显示
+- **翻页按钮** → 浏览更多圣遗物
+- **放入按钮** → 从背包收集所有圣遗物物品
+
+### 管理员命令
+
+```bash
+# 查看已配置的套装
+/relic list
+
+# 重载配置文件
+/relic reload
+
+# 添加测试圣遗物（调试用）
+/relic test
 ```
 
 ## 开发文档
 
-### 数据模型
+### 核心架构
 
-#### GemData
-宝石定义数据，从配置文件加载，包含：
-- 宝石ID
-- 物品材质
-- 显示名称和描述
-- 属性池定义
-- 升级配置
+#### 数据模型层 (relic/)
+- **RelicData**: 单件圣遗物完整数据
+- **RelicSlot**: 5个部位枚举
+- **RelicRarity**: 1-5星稀有度
+- **RelicStatType**: 主副词条类型定义
+- **PlayerRelicProfile**: 玩家档案（已装备+仓库）
 
-#### GemInstance
-宝石实例，表示具体的宝石物品，包含：
-- 宝石类型
-- 宝石等级
-- 实际属性值（从属性池随机生成）
+#### 管理层 (manager/)
+- **RelicManager**: 套装配置管理
+- **RelicProfileManager**: 玩家档案持久化
 
-#### AttributeData
-属性定义，包含：
-- 属性类型
-- 属性名称
-- 属性值范围（最小值、最大值）
+#### 服务层 (service/)
+- **RelicEffectService**: 套装效果计算与应用
+- **AttributePlusBridge**: AP插件兼容桥接
+- **StatAggregationService**: 属性聚合计算
 
-### 管理器
-
-#### GemManager
-核心管理器，负责：
-- 加载和管理宝石定义
-- 创建宝石物品
-- 读取物品的宝石数据
-- 宝石数据序列化/反序列化
+#### GUI层 (gui/)
+- **RelicMainMenuGUI**: 系统主菜单
+- **RelicEquipmentGUI**: 装备管理界面
+- **RelicWarehouseGUI**: 仓库管理界面
 
 ### 扩展指南
 
-要添加新功能，推荐的步骤：
+圣遗物系统采用模块化设计，扩展新功能的推荐步骤：
 
-1. 在 `model` 包中定义数据模型
-2. 在 `manager` 包中创建对应的管理器
-3. 在 `listener` 包中添加事件监听器
-4. 在 `command` 包中添加命令支持
-5. 在主类中注册新的组件
+1. **数据模型**: 在 `relic/` 包中定义新的数据结构
+2. **业务逻辑**: 在 `service/` 包中实现核心逻辑  
+3. **数据管理**: 在 `manager/` 包中添加数据管理
+4. **用户界面**: 在 `gui/` 包中创建交互界面
+5. **主类注册**: 在 `GemRelicPlugin.java` 中注册新组件
 
 ## 权限节点
 
 | 权限节点 | 说明 | 默认 |
 |---------|------|------|
-| `gemrelic.command.gem` | 使用 /gemrelic 命令 | OP |
-| `gemrelic.command.gem.give` | 给予宝石 | OP |
-| `gemrelic.command.gem.upgrade` | 升级宝石 | true |
-| `gemrelic.admin` | 管理员权限（包含所有权限） | OP |
+| `gemrelic.user` | 使用 /relic 基础命令 | true |
+| `gemrelic.admin` | 管理员权限（重载配置等） | OP |
 
 ## 贡献指南
 
