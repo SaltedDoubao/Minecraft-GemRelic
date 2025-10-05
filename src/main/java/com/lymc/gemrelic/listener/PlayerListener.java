@@ -1,6 +1,8 @@
 package com.lymc.gemrelic.listener;
 
 import com.lymc.gemrelic.GemRelicPlugin;
+import com.lymc.gemrelic.manager.RelicProfileManager;
+import com.lymc.gemrelic.relic.PlayerRelicProfile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -26,13 +28,12 @@ public class PlayerListener implements Listener {
      */
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
-        // 暂时只发送欢迎信息，验证监听器工作正常
-        // 后续扩展：
-        // 1. 加载玩家的宝石数据
-        // 2. 计算并缓存玩家的总属性加成
-        // 3. 同步玩家装备上的宝石属性
-        
-        plugin.getLogger().info(event.getPlayer().getName() + " 加入服务器，监听器工作正常");
+        // 加载玩家圣遗物档案
+        RelicProfileManager pm = plugin.getRelicProfileManager();
+        PlayerRelicProfile profile = pm.get(event.getPlayer());
+        // 应用套装效果
+        plugin.getRelicEffectService().refresh(event.getPlayer(), profile);
+        plugin.getLogger().info("已加载圣遗物档案: " + event.getPlayer().getName() + " 装备件数=" + profile.getEquipped().size());
     }
 
     /**
@@ -43,11 +44,11 @@ public class PlayerListener implements Listener {
      */
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        // 后续扩展：
-        // 1. 保存玩家的宝石数据
-        // 2. 清理玩家的属性缓存
-        
-        plugin.getLogger().info(event.getPlayer().getName() + " 退出服务器");
+        // 保存并清理
+        // 清理修饰并保存
+        plugin.getRelicEffectService().clear(event.getPlayer());
+        plugin.getRelicProfileManager().clear(event.getPlayer());
+        plugin.getLogger().info(event.getPlayer().getName() + " 退出服务器，已保存圣遗物档案");
     }
 
     // 后续扩展的事件监听器：

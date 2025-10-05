@@ -1,0 +1,12 @@
+sets:
+  gladiator:
+    id: gladiator
+    name: "角斗士的终幕礼"
+    bonuses:
+      # 先用纯描述，后续替换为可执行DSL
+      two_piece_desc:
+        - "攻击力+18%"
+      four_piece_desc:
+        - "持剑/双手剑/长柄武器时，普通攻击造成的伤害提升35%"
+
+
