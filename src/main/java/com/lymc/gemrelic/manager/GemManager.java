@@ -79,7 +79,6 @@ public class GemManager {
             try {
                 GemData gemData = loadGemData(gemId, gemsSection.getConfigurationSection(gemId));
                 gemRegistry.put(gemId, gemData);
-                plugin.getLogger().info("成功加载宝石: " + gemId);
             } catch (Exception e) {
                 plugin.getLogger().log(Level.SEVERE, "加载宝石 " + gemId + " 时出错", e);
             }
@@ -420,8 +419,9 @@ public class GemManager {
         }
 
         // 解析宝石信息
-        String[] parts = gemInfo.split(":");
-        if (parts.length < 3) {
+        // 解析格式: gemType:level:attrKey1:val1;attrKey2:val2
+        String[] parts = gemInfo.split(":", 3);
+        if (parts.length < 2) {
             return null;
         }
 
@@ -435,9 +435,9 @@ public class GemManager {
 
         // 解析属性
         Map<String, Double> attributes = new HashMap<>();
-        if (parts.length > 2 && !parts[2].isEmpty()) {
+        if (parts.length == 3 && parts[2] != null && !parts[2].isEmpty()) {
             for (String attrPair : parts[2].split(";")) {
-                String[] attrParts = attrPair.split(":");
+                String[] attrParts = attrPair.split(":", 2);
                 if (attrParts.length == 2) {
                     try {
                         attributes.put(attrParts[0], Double.parseDouble(attrParts[1]));
@@ -478,33 +478,39 @@ public class GemManager {
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
         pdc.remove(socketedGemKey);
 
-        // 移除lore中的宝石信息
+        // 移除lore中的宝石信息 - 优化性能
         if (meta.hasLore()) {
-            List<String> lore = new ArrayList<>(meta.getLore());
-            List<String> newLore = new ArrayList<>();
+            List<String> lore = meta.getLore();
+            List<String> newLore = new ArrayList<>(lore.size()); // 预分配容量
+            
+            // 使用标记来优化字符串比较
+            final String gemSectionStart = "§6§l镶嵌的宝石:";
+            final String emptyLine = "§7";
+            
             boolean inGemSection = false;
             
             for (String line : lore) {
-                if ("§6§l镶嵌的宝石:".equals(line)) {
+                if (gemSectionStart.equals(line)) {
                     inGemSection = true;
                     continue;
                 }
                 
                 if (inGemSection) {
-                    // 如果遇到其他章节或结束，停止删除
-                    if (line.startsWith("§6§l") && !"§6§l镶嵌的宝石:".equals(line)) {
+                    // 优化：检查是否是其他章节的开始
+                    if (line.startsWith("§6§l") && !gemSectionStart.equals(line)) {
                         inGemSection = false;
                         newLore.add(line);
                     }
-                    // 跳过宝石相关的行
+                    // 跳过宝石相关的行（包括属性行）
                 } else {
                     newLore.add(line);
                 }
             }
             
-            // 移除连续的空行
-            while (!newLore.isEmpty() && "§7".equals(newLore.get(newLore.size() - 1))) {
-                newLore.remove(newLore.size() - 1);
+            // 移除尾部连续的空行 - 优化后向遍历
+            int lastIndex = newLore.size() - 1;
+            while (lastIndex >= 0 && emptyLine.equals(newLore.get(lastIndex))) {
+                newLore.remove(lastIndex--);
             }
             
             meta.setLore(newLore);

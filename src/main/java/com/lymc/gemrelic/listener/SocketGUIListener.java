@@ -12,6 +12,9 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * 镶嵌GUI监听器
  * 处理镶嵌界面的交互事件
@@ -20,6 +23,9 @@ public class SocketGUIListener implements Listener {
     private final GemRelicPlugin plugin;
     private final GemManager gemManager;
     private final SocketGUI socketGUI;
+    
+    // 任务管理 - 防止延迟任务堆积
+    private final Map<Player, Integer> pendingUpdateTasks = new HashMap<>();
 
     public SocketGUIListener(GemRelicPlugin plugin) {
         this.plugin = plugin;
@@ -40,7 +46,8 @@ public class SocketGUIListener implements Listener {
             return;
         }
 
-        int slot = event.getSlot();
+        // 使用 rawSlot 区分容器区域(0-53)与玩家背包区域(>=54)
+        int slot = event.getRawSlot();
         
         // 如果点击的是玩家背包区域，允许正常操作
         if (slot >= 54) {
@@ -232,6 +239,12 @@ public class SocketGUIListener implements Listener {
             return;
         }
 
+        // 取消待处理的更新任务，防止内存泄漏
+        Integer taskId = pendingUpdateTasks.remove(player);
+        if (taskId != null) {
+            plugin.getServer().getScheduler().cancelTask(taskId);
+        }
+
         // 退还物品
         returnItems(player, event.getInventory());
     }
@@ -284,50 +297,38 @@ public class SocketGUIListener implements Listener {
     }
 
     /**
-     * 重置GUI槽位为提示物品状态
+     * 重置GUI槽位为提示物品状态 - 使用SocketGUI的方法避免重复代码
      */
     private void resetGUISlots(Inventory gui) {
-        // 重置装备槽位
-        ItemStack equipmentHint = createGuiItem(org.bukkit.Material.ARMOR_STAND, 
-            "§e放入要镶嵌的装备", 
-            java.util.Arrays.asList("§7将要镶嵌宝石的装备放在这里", "§7支持：头盔、胸甲、护腿、靴子"));
-        gui.setItem(SocketGUI.getEquipmentSlot(), equipmentHint);
-        
-        // 重置宝石槽位
-        ItemStack gemHint = createGuiItem(org.bukkit.Material.EMERALD, 
-            "§e放入宝石", 
-            java.util.Arrays.asList("§7将要镶嵌的宝石放在这里", "§7确保宝石支持目标装备位置"));
-        gui.setItem(SocketGUI.getGemSlot(), gemHint);
-        
-        // 重置结果槽位
-        ItemStack resultHint = createGuiItem(org.bukkit.Material.BARRIER, 
-            "§c镶嵌结果", 
-            java.util.Arrays.asList("§7镶嵌成功后的装备会在这里显示"));
-        gui.setItem(SocketGUI.getResultSlot(), resultHint);
+        // 通过重新设置布局来重置 - 更高效且一致
+        socketGUI.setupGUILayout(gui);
     }
 
     /**
-     * 创建GUI物品
-     */
-    private ItemStack createGuiItem(org.bukkit.Material material, String displayName, java.util.List<String> lore) {
-        ItemStack item = new ItemStack(material);
-        org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(displayName);
-            if (lore != null) {
-                meta.setLore(lore);
-            }
-            item.setItemMeta(meta);
-        }
-        return item;
-    }
-
-    /**
-     * 更新GUI预览
+     * 更新GUI预览 - 优化性能，防止任务堆积
      */
     private void updateGUIPreview(Inventory gui) {
-        // 延迟一个游戏刻更新预览，确保物品已经放置
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+        // 获取操作此GUI的玩家
+        Player player = null;
+        if (gui.getViewers().size() == 1 && gui.getViewers().get(0) instanceof Player) {
+            player = (Player) gui.getViewers().get(0);
+        }
+        
+        if (player == null) return;
+        
+        final Player finalPlayer = player;
+        
+        // 取消之前的更新任务，防止任务堆积
+        Integer oldTaskId = pendingUpdateTasks.get(player);
+        if (oldTaskId != null) {
+            plugin.getServer().getScheduler().cancelTask(oldTaskId);
+        }
+        
+        // 创建新的延迟任务
+        int taskId = plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            // 任务完成后从映射中移除
+            pendingUpdateTasks.remove(finalPlayer);
+            
             ItemStack equipment = gui.getItem(SocketGUI.getEquipmentSlot());
             ItemStack gem = gui.getItem(SocketGUI.getGemSlot());
             
@@ -336,27 +337,24 @@ public class SocketGUIListener implements Listener {
             
             // 更新镶嵌预览
             socketGUI.updateSocketPreview(gui, equipment, gem);
-        }, 1L);
+        }, 1L).getTaskId();
+        
+        // 保存任务ID
+        pendingUpdateTasks.put(player, taskId);
     }
 
     /**
-     * 检查并恢复占位物品
+     * 检查并恢复占位物品 - 优化性能，使用SocketGUI的缓存物品
      */
     private void checkAndRestorePlaceholders(Inventory gui, ItemStack equipment, ItemStack gem) {
         // 如果装备槽位为空或是GUI物品，恢复占位物品
         if (equipment == null || equipment.getType().isAir() || isGUIItem(equipment)) {
-            ItemStack equipmentHint = createGuiItem(org.bukkit.Material.ARMOR_STAND, 
-                "§e放入要镶嵌的装备", 
-                java.util.Arrays.asList("§7将要镶嵌宝石的装备放在这里", "§7支持：头盔、胸甲、护腿、靴子、武器"));
-            gui.setItem(SocketGUI.getEquipmentSlot(), equipmentHint);
+            gui.setItem(SocketGUI.getEquipmentSlot(), socketGUI.getCachedEquipmentHint());
         }
         
         // 如果宝石槽位为空或是GUI物品，恢复占位物品
         if (gem == null || gem.getType().isAir() || isGUIItem(gem)) {
-            ItemStack gemHint = createGuiItem(org.bukkit.Material.EMERALD, 
-                "§e放入宝石", 
-                java.util.Arrays.asList("§7将要镶嵌的宝石放在这里", "§7确保宝石支持目标装备位置"));
-            gui.setItem(SocketGUI.getGemSlot(), gemHint);
+            gui.setItem(SocketGUI.getGemSlot(), socketGUI.getCachedGemHint());
         }
     }
 

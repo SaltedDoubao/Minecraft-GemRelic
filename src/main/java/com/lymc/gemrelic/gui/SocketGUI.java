@@ -30,10 +30,62 @@ public class SocketGUI {
     private static final int CONFIRM_SLOT = 29;     // 确认按钮
     private static final int CANCEL_SLOT = 33;      // 取消按钮
     private static final int UNSOCKET_SLOT = 22;    // 拆卸按钮
+    
+    // 缓存GUI物品，避免重复创建
+    private ItemStack cachedEquipmentHint;
+    private ItemStack cachedGemHint;
+    private ItemStack cachedResultHint;
+    private ItemStack cachedConfirmButton;
+    private ItemStack cachedCancelButton;
+    private ItemStack cachedUnsocketButton;
+    private ItemStack cachedBorderItem;
+    private ItemStack cachedFailureResult;
 
     public SocketGUI(GemRelicPlugin plugin) {
         this.plugin = plugin;
         this.gemManager = plugin.getGemManager();
+        initializeCachedItems();
+    }
+    
+    /**
+     * 初始化缓存的GUI物品
+     */
+    private void initializeCachedItems() {
+        // 缓存边框物品
+        cachedBorderItem = createGuiItem(Material.GRAY_STAINED_GLASS_PANE, "§7", null);
+        
+        // 缓存装备提示物品
+        cachedEquipmentHint = createGuiItem(Material.ARMOR_STAND, 
+            "§e放入要镶嵌的装备", 
+            List.of("§7将要镶嵌宝石的装备放在这里", "§7支持：头盔、胸甲、护腿、靴子、武器"));
+            
+        // 缓存宝石提示物品
+        cachedGemHint = createGuiItem(Material.EMERALD, 
+            "§e放入宝石", 
+            List.of("§7将要镶嵌的宝石放在这里", "§7确保宝石支持目标装备位置"));
+            
+        // 缓存结果提示物品
+        cachedResultHint = createGuiItem(Material.BARRIER, 
+            "§c镶嵌结果", 
+            List.of("§7镶嵌成功后的装备会在这里显示"));
+            
+        // 缓存失败结果物品
+        cachedFailureResult = createGuiItem(Material.BARRIER, 
+            "§c无法镶嵌", 
+            List.of("§7这个宝石无法镶嵌在此装备上"));
+            
+        // 缓存功能按钮
+        cachedConfirmButton = createGuiItem(Material.GREEN_CONCRETE, 
+            "§a§l确认镶嵌", 
+            List.of("§7点击完成镶嵌操作"));
+            
+        cachedCancelButton = createGuiItem(Material.RED_CONCRETE, 
+            "§c§l取消操作", 
+            List.of("§7点击取消并退出"));
+            
+        cachedUnsocketButton = createGuiItem(Material.ORANGE_CONCRETE, 
+            "§6§l拆卸宝石", 
+            List.of("§7点击拆卸装备上的宝石", "§7需要先放入已镶嵌宝石的装备"));
     }
 
     /**
@@ -53,41 +105,21 @@ public class SocketGUI {
      * 设置GUI界面布局
      * @param gui 界面库存
      */
-    private void setupGUILayout(Inventory gui) {
-        // 创建边框物品
-        ItemStack border = createGuiItem(Material.GRAY_STAINED_GLASS_PANE, "§7", null);
-        
-        // 设置边框
+    public void setupGUILayout(Inventory gui) {
+        // 设置边框 - 使用缓存的边框物品
         for (int i = 0; i < 54; i++) {
             if (isSlotBorder(i)) {
-                gui.setItem(i, border);
+                gui.setItem(i, cachedBorderItem);
             }
         }
         
-        // 设置功能槽位提示
-        gui.setItem(EQUIPMENT_SLOT, createGuiItem(Material.ARMOR_STAND, 
-            "§e放入要镶嵌的装备", 
-            List.of("§7将要镶嵌宝石的装备放在这里", "§7支持：头盔、胸甲、护腿、靴子、武器")));
-            
-        gui.setItem(GEM_SLOT, createGuiItem(Material.EMERALD, 
-            "§e放入宝石", 
-            List.of("§7将要镶嵌的宝石放在这里", "§7确保宝石支持目标装备位置")));
-            
-        gui.setItem(RESULT_SLOT, createGuiItem(Material.BARRIER, 
-            "§c镶嵌结果", 
-            List.of("§7镶嵌成功后的装备会在这里显示")));
-            
-        gui.setItem(CONFIRM_SLOT, createGuiItem(Material.GREEN_CONCRETE, 
-            "§a§l确认镶嵌", 
-            List.of("§7点击完成镶嵌操作")));
-            
-        gui.setItem(CANCEL_SLOT, createGuiItem(Material.RED_CONCRETE, 
-            "§c§l取消操作", 
-            List.of("§7点击取消并退出")));
-            
-        gui.setItem(UNSOCKET_SLOT, createGuiItem(Material.ORANGE_CONCRETE, 
-            "§6§l拆卸宝石", 
-            List.of("§7点击拆卸装备上的宝石", "§7需要先放入已镶嵌宝石的装备")));
+        // 设置功能槽位 - 使用缓存的物品
+        gui.setItem(EQUIPMENT_SLOT, cachedEquipmentHint);
+        gui.setItem(GEM_SLOT, cachedGemHint);
+        gui.setItem(RESULT_SLOT, cachedResultHint);
+        gui.setItem(CONFIRM_SLOT, cachedConfirmButton);
+        gui.setItem(CANCEL_SLOT, cachedCancelButton);
+        gui.setItem(UNSOCKET_SLOT, cachedUnsocketButton);
     }
 
     /**
@@ -140,11 +172,22 @@ public class SocketGUI {
      * @param gem 宝石物品
      */
     public void updateSocketPreview(Inventory gui, ItemStack equipment, ItemStack gem) {
-        if (equipment == null || gem == null || !gemManager.isGem(gem)) {
-            // 清空结果槽位
-            gui.setItem(RESULT_SLOT, createGuiItem(Material.BARRIER, 
-                "§c镶嵌结果", 
-                List.of("§7镶嵌成功后的装备会在这里显示")));
+        // 检查输入是否为GUI物品
+        boolean isEquipmentReal = equipment != null && !equipment.getType().isAir() && !isGUIItem(equipment);
+        boolean isGemReal = gem != null && !gem.getType().isAir() && !isGUIItem(gem) && gemManager.isGem(gem);
+        
+        if (!isEquipmentReal || !isGemReal) {
+            // 使用缓存的结果提示物品
+            gui.setItem(RESULT_SLOT, cachedResultHint);
+            return;
+        }
+
+        // 检查装备是否已镶嵌宝石（添加上限检查）
+        if (gemManager.hasSocketedGem(equipment)) {
+            ItemStack limitResult = createGuiItem(Material.BARRIER, 
+                "§c已达上限", 
+                List.of("§7该装备已镶嵌宝石", "§7请先拆卸现有宝石"));
+            gui.setItem(RESULT_SLOT, limitResult);
             return;
         }
 
@@ -153,9 +196,8 @@ public class SocketGUI {
         GemData gemData = gemManager.getGemData(gemInstance.getGemType());
         
         if (gemData == null || !gemData.canSocketOn(equipment.getType())) {
-            gui.setItem(RESULT_SLOT, createGuiItem(Material.BARRIER, 
-                "§c无法镶嵌", 
-                List.of("§7这个宝石无法镶嵌在此装备上")));
+            // 使用缓存的失败结果物品
+            gui.setItem(RESULT_SLOT, cachedFailureResult);
             return;
         }
 
@@ -234,6 +276,13 @@ public class SocketGUI {
         
         if (result != null) {
             player.sendMessage("§a镶嵌成功！" + gemData.getDisplayName() + " §a已镶嵌到装备上");
+            
+            // 仅消耗1枚宝石，返还余量
+            if (gem.getAmount() > 1) {
+                ItemStack remain = gem.clone();
+                remain.setAmount(gem.getAmount() - 1);
+                player.getInventory().addItem(remain);
+            }
         } else {
             player.sendMessage("§c镶嵌失败：处理过程中出现错误");
         }
@@ -278,6 +327,36 @@ public class SocketGUI {
         return slot == EQUIPMENT_SLOT || slot == GEM_SLOT || slot == RESULT_SLOT 
                || slot == CONFIRM_SLOT || slot == CANCEL_SLOT || slot == UNSOCKET_SLOT;
     }
+
+    /**
+     * 检查物品是否为GUI物品
+     */
+    private boolean isGUIItem(ItemStack item) {
+        if (item == null || !item.hasItemMeta()) {
+            return false;
+        }
+        
+        String displayName = item.getItemMeta().getDisplayName();
+        
+        // 检查是否为GUI功能物品
+        return "§e放入要镶嵌的装备".equals(displayName) ||
+               "§e放入宝石".equals(displayName) ||
+               "§c镶嵌结果".equals(displayName) ||
+               "§a§l确认镶嵌".equals(displayName) ||
+               "§c§l取消操作".equals(displayName) ||
+               "§6§l拆卸宝石".equals(displayName) ||
+               "§c无法镶嵌".equals(displayName) ||
+               "§c已达上限".equals(displayName) ||
+               "§7".equals(displayName) ||
+               item.getType().name().contains("GLASS_PANE");
+    }
+
+    /**
+     * 获取缓存的GUI物品 - 性能优化
+     */
+    public ItemStack getCachedEquipmentHint() { return cachedEquipmentHint; }
+    public ItemStack getCachedGemHint() { return cachedGemHint; }
+    public ItemStack getCachedResultHint() { return cachedResultHint; }
 
     /**
      * 获取各个功能槽位的索引
