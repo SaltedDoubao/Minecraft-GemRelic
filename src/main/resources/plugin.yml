@@ -13,7 +13,7 @@ commands:
     permission: gemrelic.user
   relic-op:
     description: 圣遗物系统管理员命令
-    usage: /relic <list|reload|open|equip|unequip|test|give>
+    usage: /relic <reload|equip|unequip|test|give>
     permission: gemrelic.admin
 
 permissions:
