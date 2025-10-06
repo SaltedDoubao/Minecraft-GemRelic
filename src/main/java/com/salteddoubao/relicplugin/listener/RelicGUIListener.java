@@ -200,7 +200,7 @@ public class RelicGUIListener implements Listener {
                     profile.equip(relic);
                     plugin.getRelicEffectService().refresh(player, profile);
                     plugin.getRelicProfileManager().save(player);
-                    player.sendMessage("§a已装备圣遗物到 " + getSlotDisplayName(relic.getSlot()) + ": " + plugin.getRelicManager().getRelicSet(relic.getSetId()).getName());
+                    // player.sendMessage("§a已装备圣遗物到 " + getSlotDisplayName(relic.getSlot()) + ": " + plugin.getRelicManager().getRelicSet(relic.getSetId()).getName());
                 } else if (clickType == ClickType.RIGHT) {
                     // 右键：取出到背包
                     ItemStack relicItem = converter.toItemStack(relic);

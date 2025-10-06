@@ -9,7 +9,7 @@
     <version>1.0.0</version>
     <packaging>jar</packaging>
 
-    <name>MinecraftRelicSystem</name>
+    <name>relic-system</name>
     <description>宝石镶嵌与圣遗物属性系统插件</description>
 
     <properties>

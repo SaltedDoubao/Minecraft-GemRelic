@@ -32,11 +32,11 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§6/relic list §7- 列出已配置的套装");
             sender.sendMessage("§6/relic reload §7- 重载圣遗物配置");
             sender.sendMessage("§6/relic open §7- 打开圣遗物界面");
-            sender.sendMessage("§6/relic equip <slot> <setId> §7- 穿戴（测试）");
-            sender.sendMessage("§6/relic unequip <slot> §7- 卸下（测试）");
-            sender.sendMessage("§6/relic test §7- 添加测试圣遗物");
-            if (sender.hasPermission("gemrelic.admin")) {
+            if (sender.hasPermission("mrs.admin")) {
                 sender.sendMessage("§c=== 管理员命令 ===");
+                sender.sendMessage("§6/relic equip <slot> <setId> §7- 穿戴（测试）");
+                sender.sendMessage("§6/relic unequip <slot> §7- 卸下（测试）");
+                sender.sendMessage("§6/relic test §7- 添加测试圣遗物");
                 sender.sendMessage("§6/relic migrate §7- 数据迁移到独立存储系统");
                 sender.sendMessage("§6/relic migration-status §7- 查看迁移状态");
             }
@@ -54,7 +54,7 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
                 }
                 return true;
             case "reload":
-                if (!sender.hasPermission("gemrelic.admin")) {
+                if (!sender.hasPermission("mrs.admin")) {
                     sender.sendMessage("§c无权限");
                     return true;
                 }
@@ -142,7 +142,7 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
                 return true;
             case "give":
                 // /relic give [玩家名] [套装id] [装备位置] [等级]
-                if (!sender.hasPermission("gemrelic.admin")) { sender.sendMessage("§c无权限"); return true; }
+                if (!sender.hasPermission("mrs.admin")) { sender.sendMessage("§c无权限"); return true; }
                 if (args.length < 5) { sender.sendMessage("§c用法: /relic give <玩家名> <套装id> <部位> <等级>"); return true; }
                 String targetName = args[1];
                 org.bukkit.entity.Player target = plugin.getServer().getPlayerExact(targetName);
@@ -174,7 +174,7 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
                 if (!sender.equals(target)) { target.sendMessage("§a收到管理员发放的圣遗物: " + giveSetId + " - " + giveSlot); }
                 return true;
             case "migrate":
-                if (!sender.hasPermission("gemrelic.admin")) {
+                if (!sender.hasPermission("mrs.admin")) {
                     sender.sendMessage("§c无权限");
                     return true;
                 }
@@ -213,7 +213,7 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
                 return true;
                 
             case "migration-status":
-                if (!sender.hasPermission("gemrelic.admin")) {
+                if (!sender.hasPermission("mrs.admin")) {
                     sender.sendMessage("§c无权限");
                     return true;
                 }
@@ -245,7 +245,7 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
         // 第一层：子命令补全
         if (args.length == 1) {
             completions.addAll(List.of("list", "open", "test", "equip", "unequip", "give"));
-            if (sender.hasPermission("gemrelic.admin")) {
+            if (sender.hasPermission("mrs.admin")) {
                 completions.addAll(List.of("reload", "migrate", "migration-status"));
             }
             return filterCompletions(completions, args[0]);
