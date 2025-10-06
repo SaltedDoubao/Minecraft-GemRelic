@@ -36,8 +36,8 @@ if %errorlevel% equ 0 (
     echo.
     
     REM 显示文件信息
-    if exist "target\mc-relic-system-1.0.0.jar" (
-        for %%F in ("target\mc-relic-system-1.0.0.jar") do (
+    if exist "target\relic-system-1.0.0.jar" (
+        for %%F in ("target\relic-system-1.0.0.jar") do (
             set /a size=%%~zF/1024
             echo 文件大小: !size! KB
             echo 文件路径: %%~fF
