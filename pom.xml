@@ -5,11 +5,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.salteddoubao</groupId>
-    <artifactId>gemrelic</artifactId>
+    <artifactId>mc-relic-system</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
 
-    <name>GemRelic</name>
+    <name>MinecraftRelicSystem</name>
     <description>宝石镶嵌与圣遗物属性系统插件</description>
 
     <properties>
