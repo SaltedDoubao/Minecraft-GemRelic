@@ -1,4 +1,4 @@
-# GemRelic 插件配置文件
+# mrs 插件配置文件
 # 圣遗物属性系统
 
 # 插件基本设置
@@ -36,7 +36,7 @@ relic:
   
 # 消息配置
 messages:
-  prefix: "§6[GemRelic]§r "
+  prefix: "§6[mrs]§r "
   no_permission: "§c你没有权限执行此操作！"
   reload_success: "§a配置重载成功！"
 
@@ -44,7 +44,7 @@ messages:
 integration:
   attributeplus:
     enabled: true
-    namespace: GemRelic
+    namespace: mrs
     stat_map:
       CRIT_RATE: crit_chance
       CRIT_DMG: crit_damage
