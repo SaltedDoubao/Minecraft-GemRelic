@@ -1,11 +1,11 @@
 @echo off
 chcp 65001 >nul
-REM GemRelic 编译脚本
+REM Relic 编译脚本
 REM 自动设置Java环境并编译项目
 
 echo.
 echo ========================================
-echo   GemRelic 插件编译脚本
+echo   Relic 插件编译脚本
 echo ========================================
 echo.
 
@@ -32,12 +32,12 @@ if %errorlevel% equ 0 (
     echo   编译成功！
     echo ========================================
     echo.
-    echo 编译产物位置: target\gemrelic-1.0.0.jar
+    echo 编译产物位置: target/
     echo.
     
     REM 显示文件信息
-    if exist "target\gemrelic-1.0.0.jar" (
-        for %%F in ("target\gemrelic-1.0.0.jar") do (
+    if exist "target\mc-relic-system-1.0.0.jar" (
+        for %%F in ("target\mc-relic-system-1.0.0.jar") do (
             set /a size=%%~zF/1024
             echo 文件大小: !size! KB
             echo 文件路径: %%~fF
