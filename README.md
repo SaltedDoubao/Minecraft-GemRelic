@@ -74,52 +74,7 @@
 
 ## 项目结构
 
-```
-Minecraft-GemRelic/
-├── src/
-│   └── main/
-│       ├── java/com/lymc/gemrelic/
-│       │   ├── GemRelicPlugin.java          # 插件主类
-│       │   ├── command/
-│       │   │   └── RelicCommand.java        # 圣遗物命令处理器
-│       │   ├── gui/
-│       │   │   ├── RelicMainMenuGUI.java    # 主菜单界面
-│       │   │   ├── RelicEquipmentGUI.java   # 装备管理界面
-│       │   │   └── RelicWarehouseGUI.java   # 仓库管理界面
-│       │   ├── listener/
-│       │   │   ├── PlayerListener.java      # 玩家事件监听器
-│       │   │   └── RelicGUIListener.java    # GUI交互监听器
-│       │   ├── manager/
-│       │   │   ├── RelicManager.java        # 圣遗物管理器
-│       │   │   └── RelicProfileManager.java # 玩家档案管理器（YAML）
-│       │   ├── storage/                     # 🆕 存储层
-│       │   │   ├── IRelicProfileManager.java     # 存储接口
-│       │   │   ├── StorageFactory.java           # 存储工厂
-│       │   │   ├── RelicInventoryStorage.java    # 独立存储
-│       │   │   ├── InventoryProfileManager.java  # 独立存储管理器
-│       │   │   ├── EnderChestStorage.java        # 末影箱存储（备用）
-│       │   │   ├── EnderChestProfileManager.java # 末影箱管理器（备用）
-│       │   │   └── DataMigration.java            # 数据迁移
-│       │   ├── relic/
-│       │   │   ├── RelicData.java           # 圣遗物数据模型
-│       │   │   ├── RelicSlot.java           # 部位枚举
-│       │   │   ├── RelicRarity.java         # 稀有度枚举
-│       │   │   ├── RelicStatType.java       # 属性类型枚举
-│       │   │   └── PlayerRelicProfile.java  # 玩家档案
-│       │   ├── service/
-│       │   │   ├── RelicEffectService.java  # 套装效果服务
-│       │   │   └── AttributePlusBridge.java # AP兼容桥接
-│       │   └── util/
-│       │       ├── RelicIO.java             # 序列化工具
-│       │       └── RelicItemConverter.java  # 物品转换器
-│       └── resources/
-│           ├── plugin.yml                   # 插件描述文件
-│           ├── config.yml                   # 主配置文件
-│           └── relics/
-│               └── sets.yml                 # 套装定义文件
-├── pom.xml                                  # Maven 配置
-└── README.md                                # 项目说明
-```
+请见文档：《docs/项目结构.md》。
 
 ## 快速开始
 
@@ -260,45 +215,7 @@ integration:
 
 ## 开发文档
 
-### 核心架构
-
-#### 数据模型层 (relic/)
-- **RelicData**: 单件圣遗物完整数据
-- **RelicSlot**: 5个部位枚举
-- **RelicRarity**: 1-5星稀有度
-- **RelicStatType**: 主副词条类型定义
-- **PlayerRelicProfile**: 玩家档案（已装备+仓库）
-
-#### 管理层 (manager/)
-- **RelicManager**: 套装配置管理
-- **RelicProfileManager**: 玩家档案持久化（YAML模式）
-
-#### 存储层 (storage/) 🆕
-- **IRelicProfileManager**: 存储接口定义
-- **StorageFactory**: 存储方式工厂
-- **RelicInventoryStorage**: 独立存储实现
-- **InventoryProfileManager**: 独立存储档案管理器
-- **DataMigration**: 数据迁移工具
-
-#### 服务层 (service/)
-- **RelicEffectService**: 套装效果计算与应用
-- **AttributePlusBridge**: AP插件兼容桥接
-- **StatAggregationService**: 属性聚合计算
-
-#### GUI层 (gui/)
-- **RelicMainMenuGUI**: 系统主菜单
-- **RelicEquipmentGUI**: 装备管理界面
-- **RelicWarehouseGUI**: 仓库管理界面
-
-### 扩展指南
-
-圣遗物系统采用模块化设计，扩展新功能的推荐步骤：
-
-1. **数据模型**: 在 `relic/` 包中定义新的数据结构
-2. **业务逻辑**: 在 `service/` 包中实现核心逻辑  
-3. **数据管理**: 在 `manager/` 包中添加数据管理
-4. **用户界面**: 在 `gui/` 包中创建交互界面
-5. **主类注册**: 在 `GemRelicPlugin.java` 中注册新组件
+开发者请阅读：《docs/开发者文档.md》。其中“项目结构”部分指向《docs/项目结构.md》。
 
 ## 权限节点
 

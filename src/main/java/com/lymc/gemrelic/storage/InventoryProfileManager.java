@@ -58,9 +58,8 @@ public class InventoryProfileManager implements IRelicProfileManager {
     @Override
     public void save(Player player) {
         // 独立存储无需手动保存，数据实时同步
-        // 记录统计信息用于调试
-        String stats = storage.getStorageStats(player);
-        plugin.getLogger().info("玩家圣遗物数据状态: " + player.getName() + " (" + stats + ") - 独立存储自动持久化");
+        // feedback: 后台不再显示玩家圣遗物数据状态
+        // 保留方法但不输出日志
     }
     
     /**
@@ -68,7 +67,8 @@ public class InventoryProfileManager implements IRelicProfileManager {
      */
     @Override
     public void saveAll() {
-        plugin.getLogger().info("独立存储系统：所有玩家数据已自动持久化，无需手动保存");
+        // 保留提示但简化
+        plugin.getLogger().fine("独立存储系统：所有玩家数据已自动持久化");
     }
     
     /**
@@ -109,11 +109,8 @@ public class InventoryProfileManager implements IRelicProfileManager {
         @Override
         public void equip(RelicData relic) {
             if (relic == null) return;
-            
             boolean success = storage.equipRelic(player, relic);
-            if (success) {
-                player.sendMessage("§a已装备圣遗物到 " + getSlotDisplayName(relic.getSlot()) + " 部位");
-            } else {
+            if (!success) {
                 player.sendMessage("§c装备失败");
             }
         }
@@ -131,7 +128,6 @@ public class InventoryProfileManager implements IRelicProfileManager {
         @Override
         public void addToWarehouse(RelicData relic) {
             if (relic == null) return;
-            
             boolean success = storage.addToWarehouse(player, relic);
             if (!success) {
                 player.sendMessage("§c仓库已满，无法添加圣遗物");

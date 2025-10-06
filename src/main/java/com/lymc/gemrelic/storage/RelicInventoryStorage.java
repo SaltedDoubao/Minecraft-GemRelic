@@ -32,13 +32,16 @@ public class RelicInventoryStorage {
     private final GemRelicPlugin plugin;
     private final RelicItemConverter converter;
     
-    // 虚拟圣遗物仓库大小（类似末影箱的27格）
+    // 旧版兼容：虚拟圣遗物仓库大小（用于v1/v2反序列化到临时Inventory）
     private static final int INVENTORY_SIZE = 27;
     
-    // 槽位分配
+    // 槽位分配（装备位固定5个）
     private static final int EQUIPPED_START = 0;  // 已装备：0-4
     private static final int WAREHOUSE_START = 5; // 仓库：5-26
     private static final int WAREHOUSE_END = 26;
+
+    // 新版（v3）仓库最大容量
+    private static final int MAX_WAREHOUSE_CAPACITY = 2000;
     
     public RelicInventoryStorage(GemRelicPlugin plugin) {
         this.plugin = plugin;
@@ -49,17 +52,96 @@ public class RelicInventoryStorage {
         this.converter = providedConverter;
     }
     
-    /**
-     * 获取玩家的圣遗物存储Inventory
-     */
-    public Inventory getRelicInventory(Player player) {
-        // 创建虚拟的圣遗物存储空间
-        Inventory relicInv = Bukkit.createInventory(null, INVENTORY_SIZE, "§6" + player.getName() + " 的圣遗物存储");
-        
-        // 从文件加载数据
-        loadInventoryFromFile(player, relicInv);
-        
-        return relicInv;
+    // ===== 新版(v3) 存取逻辑：装备位 + 动态仓库（最大2000） =====
+    private static class StorageData {
+        ItemStack[] equipped = new ItemStack[RelicSlot.values().length]; // 仅使用前5个
+        List<ItemStack> warehouse = new ArrayList<>();
+    }
+
+    private StorageData loadStorageData(Player player) {
+        StorageData data = new StorageData();
+        try {
+            File file = getStorageFile(player.getUniqueId());
+            if (!file.exists()) {
+                return data; // 空数据
+            }
+            byte[] bytes;
+            try (FileInputStream fis = new FileInputStream(file); BufferedInputStream bis = new BufferedInputStream(fis)) {
+                bytes = bis.readAllBytes();
+            }
+
+            // 读取版本号（使用Bukkit对象流以正确跳过序列化头）
+            int version;
+            try (BukkitObjectInputStream ois = new BukkitObjectInputStream(new ByteArrayInputStream(bytes))) {
+                version = ois.readInt();
+            }
+
+            if (version == 3) {
+                try (BukkitObjectInputStream ois = new BukkitObjectInputStream(new ByteArrayInputStream(bytes))) {
+                    ois.readInt(); // consume version
+                    // 读取装备位（按枚举顺序）
+                    for (int i = 0; i < RelicSlot.values().length; i++) {
+                        boolean present = ois.readBoolean();
+                        if (present) {
+                            data.equipped[i] = (ItemStack) ois.readObject();
+                        }
+                    }
+                    // 读取仓库列表
+                    int count = ois.readInt();
+                    for (int i = 0; i < count; i++) {
+                        ItemStack item = (ItemStack) ois.readObject();
+                        data.warehouse.add(item);
+                    }
+                }
+                return data;
+            }
+
+            // 兼容旧版：v1/v2 读取到临时Inventory后拆分
+            Inventory temp = Bukkit.createInventory(null, INVENTORY_SIZE);
+            deserializeInventory(bytes, temp);
+            for (int i = 0; i < RelicSlot.values().length; i++) {
+                data.equipped[i] = temp.getItem(EQUIPPED_START + i);
+            }
+            for (int i = WAREHOUSE_START; i <= WAREHOUSE_END; i++) {
+                ItemStack it = temp.getItem(i);
+                if (it != null && !it.getType().isAir()) {
+                    data.warehouse.add(it);
+                }
+            }
+            return data;
+        } catch (Exception e) {
+            plugin.getLogger().warning("读取圣遗物存储失败: " + e.getMessage());
+            return data;
+        }
+    }
+
+    private void saveStorageData(Player player, StorageData data) {
+        try {
+            File dataFile = getStorageFile(player.getUniqueId());
+            try (FileOutputStream fos = new FileOutputStream(dataFile);
+                 BufferedOutputStream bos = new BufferedOutputStream(fos);
+                 BukkitObjectOutputStream oos = new BukkitObjectOutputStream(bos)) {
+                // 写入版本
+                oos.writeInt(3);
+                // 写入装备位
+                for (int i = 0; i < RelicSlot.values().length; i++) {
+                    ItemStack it = data.equipped[i];
+                    boolean present = (it != null && !it.getType().isAir());
+                    oos.writeBoolean(present);
+                    if (present) {
+                        oos.writeObject(it);
+                    }
+                }
+                // 写入仓库
+                oos.writeInt(data.warehouse.size());
+                for (ItemStack it : data.warehouse) {
+                    oos.writeObject(it);
+                }
+                oos.flush();
+            }
+        } catch (Exception e) {
+            plugin.getLogger().severe("保存圣遗物存储失败: " + e.getMessage());
+        }
     }
     
     /**
@@ -163,6 +245,11 @@ public class RelicInventoryStorage {
     private void deserializeInventory(byte[] data, Inventory inventory) throws IOException, ClassNotFoundException {
         try (BukkitObjectInputStream ois = new BukkitObjectInputStream(new ByteArrayInputStream(data))) {
             int version = ois.readInt();
+            if (version == 3) {
+                // v3：装备位+列表，不在此方法解析（该方法保留给旧版兼容）
+                plugin.getLogger().fine("检测到v3数据格式，改用新版解析路径");
+                return;
+            }
             if (version == 2) {
                 int size = ois.readInt();
                 if (size != inventory.getSize()) {
@@ -206,10 +293,8 @@ public class RelicInventoryStorage {
      * 获取已装备的圣遗物
      */
     public RelicData getEquipped(Player player, RelicSlot slot) {
-        Inventory relicInv = getRelicInventory(player);
-        int slotIndex = EQUIPPED_START + slot.ordinal();
-        
-        ItemStack item = relicInv.getItem(slotIndex);
+        StorageData data = loadStorageData(player);
+        ItemStack item = data.equipped[slot.ordinal()];
         if (converter.isRelicItem(item)) {
             return converter.fromItemStack(item);
         }
@@ -221,29 +306,30 @@ public class RelicInventoryStorage {
      */
     public boolean equipRelic(Player player, RelicData relic) {
         if (relic == null) return false;
-        
-        Inventory relicInv = getRelicInventory(player);
-        int slotIndex = EQUIPPED_START + relic.getSlot().ordinal();
-        
-        // 如果原位置有装备，移动到仓库
-        ItemStack oldEquipped = relicInv.getItem(slotIndex);
+        StorageData data = loadStorageData(player);
+        int idx = relic.getSlot().ordinal();
+
+        // 如果原位置有装备，尝试放入仓库
+        ItemStack oldEquipped = data.equipped[idx];
         if (converter.isRelicItem(oldEquipped)) {
-            RelicData oldRelic = converter.fromItemStack(oldEquipped);
-            if (oldRelic != null && !addToWarehouse(player, oldRelic, relicInv)) {
+            if (data.warehouse.size() >= MAX_WAREHOUSE_CAPACITY) {
                 player.sendMessage("§c装备失败：仓库已满，无法放入原装备");
                 return false;
             }
+            data.warehouse.add(oldEquipped);
         }
-        
+
         // 装备新圣遗物
-        relicInv.setItem(slotIndex, converter.toItemStack(relic));
-        
-        // 从仓库中移除（如果存在）
-        removeFromWarehouse(player, relic, relicInv);
-        
-        // 保存数据
-        saveRelicInventory(player, relicInv);
-        
+        data.equipped[idx] = converter.toItemStack(relic);
+
+        // 从仓库中移除同ID（如果存在）
+        data.warehouse.removeIf(it -> {
+            if (!converter.isRelicItem(it)) return false;
+            RelicData rd = converter.fromItemStack(it);
+            return rd != null && rd.getId().equals(relic.getId());
+        });
+
+        saveStorageData(player, data);
         return true;
     }
     
@@ -251,46 +337,41 @@ public class RelicInventoryStorage {
      * 卸下装备
      */
     public boolean unequipRelic(Player player, RelicSlot slot) {
-        Inventory relicInv = getRelicInventory(player);
-        int slotIndex = EQUIPPED_START + slot.ordinal();
-        
-        ItemStack equipped = relicInv.getItem(slotIndex);
+        StorageData data = loadStorageData(player);
+        int idx = slot.ordinal();
+        ItemStack equipped = data.equipped[idx];
         if (!converter.isRelicItem(equipped)) {
-            return false; // 该部位没有装备
+            return false;
         }
-        
-        RelicData relic = converter.fromItemStack(equipped);
-        if (relic == null) return false;
-        
-        // 尝试放入仓库
-        if (addToWarehouse(player, relic, relicInv)) {
-            relicInv.setItem(slotIndex, null);
-            saveRelicInventory(player, relicInv);
-            return true;
-        } else {
+        if (data.warehouse.size() >= MAX_WAREHOUSE_CAPACITY) {
             player.sendMessage("§c卸下失败：仓库已满");
             return false;
         }
+        data.warehouse.add(equipped);
+        data.equipped[idx] = null;
+        saveStorageData(player, data);
+        return true;
     }
     
     /**
      * 获取仓库中的所有圣遗物
      */
     public List<RelicData> getWarehouse(Player player) {
-        List<RelicData> warehouse = new ArrayList<>();
-        Inventory relicInv = getRelicInventory(player);
-        
-        for (int i = WAREHOUSE_START; i <= WAREHOUSE_END; i++) {
-            ItemStack item = relicInv.getItem(i);
-            if (converter.isRelicItem(item)) {
-                RelicData relic = converter.fromItemStack(item);
-                if (relic != null) {
-                    warehouse.add(relic);
-                }
+        StorageData data = loadStorageData(player);
+        List<RelicData> list = new ArrayList<>();
+        int idx = 0;
+        for (ItemStack it : data.warehouse) {
+            if (it == null || it.getType().isAir()) { idx++; continue; }
+            if (!converter.isRelicItem(it)) { idx++; continue; }
+            RelicData rd = converter.fromItemStack(it);
+            if (rd != null) {
+                list.add(rd);
+            } else {
+                plugin.getLogger().fine("忽略无效仓库条目 index=" + idx + " player=" + player.getName());
             }
+            idx++;
         }
-        
-        return warehouse;
+        return list;
     }
     
     /**
@@ -307,55 +388,36 @@ public class RelicInventoryStorage {
      * 添加圣遗物到仓库
      */
     public boolean addToWarehouse(Player player, RelicData relic) {
-        Inventory relicInv = getRelicInventory(player);
-        boolean success = addToWarehouse(player, relic, relicInv);
-        if (success) {
-            saveRelicInventory(player, relicInv);
-        }
-        return success;
+        StorageData data = loadStorageData(player);
+        if (relic == null) return false;
+        if (data.warehouse.size() >= MAX_WAREHOUSE_CAPACITY) return false;
+        data.warehouse.add(converter.toItemStack(relic));
+        saveStorageData(player, data);
+        return true;
     }
     
     private boolean addToWarehouse(Player player, RelicData relic, Inventory relicInv) {
-        if (relic == null) return false;
-        
-        // 查找第一个空槽位
-        for (int i = WAREHOUSE_START; i <= WAREHOUSE_END; i++) {
-            ItemStack item = relicInv.getItem(i);
-            if (item == null || item.getType().isAir()) {
-                relicInv.setItem(i, converter.toItemStack(relic));
-                return true;
-            }
-        }
-        
-        return false; // 仓库已满
+        // 仅用于旧逻辑兼容（不再使用）。
+        return false;
     }
     
     /**
      * 从仓库移除圣遗物
      */
     public boolean removeFromWarehouse(Player player, RelicData relic) {
-        Inventory relicInv = getRelicInventory(player);
-        boolean success = removeFromWarehouse(player, relic, relicInv);
-        if (success) {
-            saveRelicInventory(player, relicInv);
-        }
-        return success;
+        StorageData data = loadStorageData(player);
+        if (relic == null) return false;
+        boolean removed = data.warehouse.removeIf(it -> {
+            if (!converter.isRelicItem(it)) return false;
+            RelicData rd = converter.fromItemStack(it);
+            return rd != null && rd.getId().equals(relic.getId());
+        });
+        if (removed) saveStorageData(player, data);
+        return removed;
     }
     
     private boolean removeFromWarehouse(Player player, RelicData relic, Inventory relicInv) {
-        if (relic == null) return false;
-        
-        for (int i = WAREHOUSE_START; i <= WAREHOUSE_END; i++) {
-            ItemStack item = relicInv.getItem(i);
-            if (converter.isRelicItem(item)) {
-                RelicData existing = converter.fromItemStack(item);
-                if (existing != null && existing.getId().equals(relic.getId())) {
-                    relicInv.setItem(i, null);
-                    return true;
-                }
-            }
-        }
-        
+        // 仅用于旧逻辑兼容（不再使用）。
         return false;
     }
     
@@ -363,67 +425,57 @@ public class RelicInventoryStorage {
      * 获取仓库可用空间
      */
     public int getWarehouseAvailableSpace(Player player) {
-        Inventory relicInv = getRelicInventory(player);
-        int available = 0;
-        
-        for (int i = WAREHOUSE_START; i <= WAREHOUSE_END; i++) {
-            ItemStack item = relicInv.getItem(i);
-            if (item == null || item.getType().isAir()) {
-                available++;
-            }
-        }
-        
-        return available;
+        StorageData data = loadStorageData(player);
+        return Math.max(0, MAX_WAREHOUSE_CAPACITY - data.warehouse.size());
     }
     
     /**
      * 获取仓库总容量
      */
     public int getWarehouseCapacity() {
-        return WAREHOUSE_END - WAREHOUSE_START + 1; // 22格
+        return MAX_WAREHOUSE_CAPACITY;
     }
     
     /**
      * 清理无效的圣遗物数据
      */
     public void cleanupInvalidRelics(Player player) {
-        Inventory relicInv = getRelicInventory(player);
-        boolean hasChanges = false;
-        
-        for (int i = 0; i < relicInv.getSize(); i++) {
-            ItemStack item = relicInv.getItem(i);
-            if (item != null && converter.isRelicItem(item)) {
-                RelicData relic = converter.fromItemStack(item);
-                if (relic == null) {
-                    // 无效的圣遗物数据，清理掉
-                    relicInv.setItem(i, null);
-                    hasChanges = true;
-                    plugin.getLogger().warning("清理了玩家 " + player.getName() + " 圣遗物存储中的无效数据 (槽位" + i + ")");
+        StorageData data = loadStorageData(player);
+        boolean changed = false;
+        // 校验装备位
+        for (int i = 0; i < RelicSlot.values().length; i++) {
+            ItemStack it = data.equipped[i];
+            if (it != null && converter.isRelicItem(it)) {
+                RelicData rd = converter.fromItemStack(it);
+                if (rd == null) {
+                    data.equipped[i] = null;
+                    changed = true;
+                    plugin.getLogger().warning("清理了玩家 " + player.getName() + " 圣遗物装备中的无效数据 (槽位" + i + ")");
                 }
             }
         }
-        
-        if (hasChanges) {
-            saveRelicInventory(player, relicInv);
-        }
+        // 校验仓库
+        int before = data.warehouse.size();
+        data.warehouse.removeIf(it -> converter.isRelicItem(it) && converter.fromItemStack(it) == null);
+        if (before != data.warehouse.size()) changed = true;
+        if (changed) saveStorageData(player, data);
     }
     
     /**
      * 获取存储统计信息
      */
     public String getStorageStats(Player player) {
+        StorageData data = loadStorageData(player);
         int equipped = 0;
-        for (RelicSlot slot : RelicSlot.values()) {
-            if (getEquipped(player, slot) != null) {
-                equipped++;
-            }
+        for (int i = 0; i < RelicSlot.values().length; i++) {
+            ItemStack it = data.equipped[i];
+            if (it != null && !it.getType().isAir()) equipped++;
         }
-        
-        int warehouseUsed = getWarehouse(player).size();
-        int warehouseCapacity = getWarehouseCapacity();
-        int warehouseAvailable = getWarehouseAvailableSpace(player);
-        
+        int warehouseUsed = data.warehouse.size();
+        int warehouseCapacity = MAX_WAREHOUSE_CAPACITY;
+        int warehouseAvailable = Math.max(0, warehouseCapacity - warehouseUsed);
         return String.format("装备: %d/5, 仓库: %d/%d (可用: %d)", 
                 equipped, warehouseUsed, warehouseCapacity, warehouseAvailable);
     }
 }
+

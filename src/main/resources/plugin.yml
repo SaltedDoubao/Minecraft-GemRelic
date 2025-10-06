@@ -9,8 +9,12 @@ description: 圣遗物属性系统插件
 commands:
   relic:
     description: 圣遗物系统主命令
-    usage: /relic <list|reload|open|equip|unequip|test>
+    usage: /relic <list|open|>
     permission: gemrelic.user
+  relic-op:
+    description: 圣遗物系统管理员命令
+    usage: /relic <list|reload|open|equip|unequip|test|give>
+    permission: gemrelic.admin
 
 permissions:
   gemrelic.admin:

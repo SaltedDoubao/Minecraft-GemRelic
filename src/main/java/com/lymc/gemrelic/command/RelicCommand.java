@@ -103,10 +103,10 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
             case "test":
                 if (!(sender instanceof Player)) { sender.sendMessage("§c仅玩家可用"); return true; }
                 Player tp = (Player) sender;
-                PlayerRelicProfile tpr = plugin.getRelicProfileManager().get(tp);
                 RelicItemConverter converter = plugin.getRelicItemConverter();
-                
-                // 添加几个测试圣遗物到仓库
+
+                // 清理：不向仓库添加，全部发放至背包
+                int given = 0;
                 for (RelicSlot testSlot : RelicSlot.values()) {
                     RelicData test = new RelicData(
                         UUID.randomUUID(), "gladiator", testSlot, RelicRarity.GOLD, 20, 0,
@@ -118,10 +118,11 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
                         ),
                         false
                     );
-                    tpr.addToWarehouse(test);
+                    tp.getInventory().addItem(converter.toItemStack(test));
+                    given++;
                 }
-                
-                // 同时在背包中添加几个测试圣遗物物品（用于测试拖动功能）
+
+                // 额外随机3件发放至背包
                 for (int i = 0; i < 3; i++) {
                     RelicData bagTest = new RelicData(
                         UUID.randomUUID(), "gladiator", RelicSlot.FLOWER, RelicRarity.PURPLE, 15, 0,
@@ -133,12 +134,43 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
                         false
                     );
                     tp.getInventory().addItem(converter.toItemStack(bagTest));
+                    given++;
                 }
-                
-                // 立即保存到文件
-                plugin.getRelicProfileManager().save(tp);
-                sender.sendMessage("§a已添加5件测试圣遗物到仓库，3件到背包");
-                sender.sendMessage("§e现在可以测试：拖动、Shift-点击等功能");
+
+                sender.sendMessage("§a已向背包发放 " + given + " 件测试圣遗物");
+                return true;
+            case "give":
+                // /relic give [玩家名] [套装id] [装备位置] [等级]
+                if (!sender.hasPermission("gemrelic.admin")) { sender.sendMessage("§c无权限"); return true; }
+                if (args.length < 5) { sender.sendMessage("§c用法: /relic give <玩家名> <套装id> <部位> <等级>"); return true; }
+                String targetName = args[1];
+                org.bukkit.entity.Player target = plugin.getServer().getPlayerExact(targetName);
+                if (target == null) { sender.sendMessage("§c玩家不在线: " + targetName); return true; }
+                String giveSetId = args[2];
+                if (plugin.getRelicManager().getRelicSet(giveSetId) == null) { sender.sendMessage("§c未知套装: " + giveSetId); return true; }
+                RelicSlot giveSlot;
+                try { giveSlot = RelicSlot.valueOf(args[3].toUpperCase()); } catch (Exception ex) { sender.sendMessage("§c无效部位"); return true; }
+                int level;
+                try { level = Integer.parseInt(args[4]); } catch (NumberFormatException ex) { sender.sendMessage("§c等级必须是数字"); return true; }
+                if (level < 0) level = 0;
+                if (level > 20) level = 20;
+
+                RelicItemConverter conv = plugin.getRelicItemConverter();
+                // 简化：根据部位选一个常用主词条
+                RelicMainStat main;
+                switch (giveSlot) {
+                    case FLOWER -> main = new RelicMainStat(RelicStatType.HP_FLAT, 4780);
+                    case PLUME -> main = new RelicMainStat(RelicStatType.ATK_FLAT, 311);
+                    case SANDS -> main = new RelicMainStat(RelicStatType.ATK_PCT, 46.6);
+                    case GOBLET -> main = new RelicMainStat(RelicStatType.ELEM_DMG_ANY, 46.6);
+                    case CIRCLET -> main = new RelicMainStat(RelicStatType.CRIT_RATE, 31.1);
+                    default -> main = new RelicMainStat(RelicStatType.ATK_PCT, 46.6);
+                }
+                RelicData grant = new RelicData(UUID.randomUUID(), giveSetId, giveSlot, RelicRarity.GOLD, level, 0,
+                        main, List.of(new RelicSubstat(RelicStatType.CRIT_RATE, 3.1), new RelicSubstat(RelicStatType.ATK_PCT, 5.8)), false);
+                target.getInventory().addItem(conv.toItemStack(grant));
+                sender.sendMessage("§a已发放圣遗物给 " + target.getName());
+                if (!sender.equals(target)) { target.sendMessage("§a收到管理员发放的圣遗物: " + giveSetId + " - " + giveSlot); }
                 return true;
             case "migrate":
                 if (!sender.hasPermission("gemrelic.admin")) {
@@ -211,7 +243,7 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
         
         // 第一层：子命令补全
         if (args.length == 1) {
-            completions.addAll(List.of("list", "open", "test", "equip", "unequip"));
+            completions.addAll(List.of("list", "open", "test", "equip", "unequip", "give"));
             if (sender.hasPermission("gemrelic.admin")) {
                 completions.addAll(List.of("reload", "migrate", "migration-status"));
             }
@@ -227,6 +259,10 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
                 completions.addAll(List.of("FLOWER", "PLUME", "SANDS", "GOBLET", "CIRCLET"));
                 return filterCompletions(completions, args[1]);
             }
+            if (subCommand.equals("give")) {
+                for (org.bukkit.entity.Player pl : plugin.getServer().getOnlinePlayers()) completions.add(pl.getName());
+                return filterCompletions(completions, args[1]);
+            }
         }
         
         // 第三层：套装ID补全（仅 equip 命令）
@@ -238,6 +274,22 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
                 completions.addAll(relicManager.getRelicSetIds());
                 return filterCompletions(completions, args[2]);
             }
+            if (subCommand.equals("give")) {
+                completions.addAll(relicManager.getRelicSetIds());
+                return filterCompletions(completions, args[2]);
+            }
+        }
+        
+        // 第四层：部位
+        if (args.length == 4 && args[0].equalsIgnoreCase("give")) {
+            completions.addAll(List.of("FLOWER", "PLUME", "SANDS", "GOBLET", "CIRCLET"));
+            return filterCompletions(completions, args[3]);
+        }
+        
+        // 第五层：等级
+        if (args.length == 5 && args[0].equalsIgnoreCase("give")) {
+            completions.addAll(List.of("0", "4", "8", "12", "16", "20"));
+            return filterCompletions(completions, args[4]);
         }
         
         return completions;
