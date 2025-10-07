@@ -32,7 +32,7 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
         if (args.length == 0) {
             sender.sendMessage("§6/relic help §7- 查看命令帮助");
             sender.sendMessage("§6/relic list [page] §7- 列出已配置的套装（支持翻页）");
-            sender.sendMessage("§6/relic open §7- 打开圣遗物界面");
+            sender.sendMessage("§6/relic gui §7- 打开圣遗物界面");
             if (sender.hasPermission("mrs.admin")) {
                 sender.sendMessage("§c=== 管理员命令 ===");
                 sender.sendMessage("§6/relic reload §7- 重载圣遗物配置");
@@ -53,7 +53,7 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
                 sender.sendMessage("§e基础命令:");
                 sender.sendMessage("§6/relic help §7- 查看命令帮助");
                 sender.sendMessage("§6/relic list [page] §7- 列出套装（翻页）");
-                sender.sendMessage("§6/relic open §7- 打开圣遗物界面");
+                sender.sendMessage("§6/relic gui §7- 打开圣遗物界面");
                 if (sender.hasPermission("mrs.admin")) {
                     sender.sendMessage("§c管理员命令:");
                     sender.sendMessage("§6/relic reload §7- 重载圣遗物配置");
@@ -104,7 +104,7 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
                 plugin.reloadRelicConfig();
                 sender.sendMessage("§a圣遗物配置已重载");
                 return true;
-            case "open":
+            case "gui":
                 if (!(sender instanceof Player)) {
                     sender.sendMessage("§c仅玩家可用");
                     return true;
