@@ -16,62 +16,62 @@ main_stats:
   ATK_PCT:
     slots: [SANDS, GOBLET, CIRCLET]
     base: 6.0
-    step: 1.2
+    step: 1.35
   DEF_PCT:
     slots: [SANDS, GOBLET, CIRCLET]
     base: 7.0
-    step: 1.4
+    step: 1.3
   HP_PCT:
     slots: [SANDS, GOBLET, CIRCLET]
-    base: 5.0
-    step: 1.0
+    base: 6.0
+    step: 1.35
   CRIT_RATE:
     slots: [CIRCLET]
-    base: 5.0
-    step: 1.0
+    base: 4.5
+    step: 0.9
   CRIT_DMG:
     slots: [CIRCLET]
-    base: 10.0
-    step: 2.0
+    base: 9.0
+    step: 1.7
   ELEM_DMG_ANY:
     slots: [GOBLET]
     base: 6.0
-    step: 1.2
+    step: 1.35
 
 sub_stats:
   # 副词条支持所有部位，不限制 slots
   CRIT_RATE:
-    weight: 1
-    pool: [3.1, 3.5, 3.9, 4.3]
+    weight: 2
+    pool: [2.7, 3.1, 3.5, 3.9]
   CRIT_DMG:
     weight: 2
-    pool: [6.2, 7.0, 7.8, 8.6]
+    pool: [5.4, 6.2, 7.0, 7.8]
   ATK_PCT:
     weight: 10
     pool: [4.1, 4.7, 5.3, 5.8]
   ATK_FLAT:
-    weight: 22
+    weight: 20
     pool: [14, 16, 18, 19]
   DEF_PCT:
-    weight: 18
+    weight: 16
     pool: [4.1, 4.7, 5.3, 5.8]
   HP_PCT:
     weight: 12
     pool: [4.1, 4.7, 5.3, 5.8]
   HP_FLAT:
     weight: 20
-    pool: [209, 239, 269, 299]
+    pool: [6, 8, 10, 12]
   ATK_SPEED:
-    weight: 16
+    weight: 12
     pool: [2.1, 2.5, 2.9, 3.3]
   MOVE_SPEED:
-    weight: 14
+    weight: 12
     pool: [2.1, 2.5, 2.9, 3.3]
   LUCK:
-    weight: 22
+    weight: 18
     pool: [1, 2, 3, 4]
   KB_RES:
-    weight: 22
+    weight: 18
     pool: [2.1, 2.5, 2.9, 3.3]
 
 rarity:

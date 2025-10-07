@@ -20,6 +20,5 @@ permissions:
     description: 允许使用relic基础命令
     default: true
 
-softdepend:
-  - AttributePlus
+# 已移除对 AttributePlus 的软依赖，插件独立运行
 

@@ -2,6 +2,7 @@ sets:
   gladiator:
     id: gladiator
     name: "角斗士的终幕礼"
+    template_item: "IRON_SWORD"
     bonuses:
       # 先用纯描述，后续替换为可执行DSL
       two_piece_desc:
@@ -12,6 +13,7 @@ sets:
   wanderer:
     id: wanderer
     name: "流浪大地的乐团"
+    template_item: "BOW"
     bonuses:
       two_piece_desc:
         - "元素精通+80"
@@ -21,6 +23,7 @@ sets:
   noblesse:
     id: noblesse
     name: "昔日宗室之仪"
+    template_item: "GOLDEN_CHESTPLATE"
     bonuses:
       two_piece_desc:
         - "元素爆发伤害+20%"
@@ -30,6 +33,7 @@ sets:
   blizzard:
     id: blizzard
     name: "冰风迷途的勇士"
+    template_item: "BLUE_ICE"
     bonuses:
       two_piece_desc:
         - "冰元素伤害加成+15%"
@@ -39,6 +43,7 @@ sets:
   thundering:
     id: thundering
     name: "如雷的盛怒"
+    template_item: "LIGHTNING_ROD"
     bonuses:
       two_piece_desc:
         - "雷元素伤害加成+15%"
@@ -48,6 +53,7 @@ sets:
   viridescent:
     id: viridescent
     name: "翠绿之影"
+    template_item: "OAK_LEAVES"
     bonuses:
       two_piece_desc:
         - "风元素伤害加成+15%"
@@ -57,6 +63,7 @@ sets:
   heart_of_depth:
     id: heart_of_depth
     name: "沉沦之心"
+    template_item: "WATER_BUCKET"
     bonuses:
       two_piece_desc:
         - "水元素伤害加成+15%"
@@ -66,6 +73,7 @@ sets:
   pale_flame:
     id: pale_flame
     name: "苍白之火"
+    template_item: "BONE"
     bonuses:
       two_piece_desc:
         - "物理伤害加成+25%"
@@ -75,6 +83,7 @@ sets:
   emblem:
     id: emblem
     name: "绝缘之旗印"
+    template_item: "ENDER_PEARL"
     bonuses:
       two_piece_desc:
         - "元素充能效率+20%"
@@ -84,6 +93,7 @@ sets:
   husk:
     id: husk
     name: "华馆梦醒形骸记"
+    template_item: "SAND"
     bonuses:
       two_piece_desc:
         - "防御力+30%"

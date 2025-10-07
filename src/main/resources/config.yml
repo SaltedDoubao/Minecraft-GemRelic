@@ -46,10 +46,10 @@ messages:
   no_permission: "§c你没有权限执行此操作！"
   reload_success: "§a配置重载成功！"
 
-# 集成配置
+# 集成配置（已不再依赖外部属性插件，以下配置将被忽略）
 integration:
   attributeplus:
-    enabled: true
+    enabled: false
     namespace: mrs
     stat_map:
       CRIT_RATE: crit_chance
@@ -61,13 +61,9 @@ integration:
     operation:
       default: add
     command_mode:
-      enabled: true
-      # 针对每个属性键执行的控制台命令模板（依序执行）。
-      # 可用占位符：%player% %uuid% %namespace% %key% %value%
-      # 下列为示例，需根据服务器所用 AttributePlus 指令语法调整。
+      enabled: false
       apply_each:
         - "ap set %player% %namespace%:%key% %value%"
-      # 按命名空间的一键清理模板（可配置多条）。
       clear_all:
         - "ap clear %player% %namespace%"
 
