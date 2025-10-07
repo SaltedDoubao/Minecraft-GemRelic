@@ -9,7 +9,7 @@ description: 圣遗物属性系统插件
 commands:
   relic:
     description: 圣遗物系统主命令
-    usage: /relic <help|list|open|gen|give|equip|unequip|test|box|reload|migrate|migration-status>
+    usage: /relic <help|list|gui|gen|give|test|box|reload|migrate|migration-status>
     permission: mrs.user
 
 permissions:
