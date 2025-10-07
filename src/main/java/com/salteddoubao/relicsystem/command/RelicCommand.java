@@ -293,7 +293,7 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
         List<String> completions = new ArrayList<>();
         
         if (args.length == 1) {
-            completions.addAll(List.of("help", "list", "open"));
+            completions.addAll(List.of("help", "list", "gui"));
             if (sender.hasPermission("mrs.admin")) {
                 completions.addAll(List.of("test", "give", "gen", "box", "reload", "migrate", "migration-status"));
             }
