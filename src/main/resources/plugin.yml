@@ -1,6 +1,6 @@
 ﻿name: MinecraftRelicSystem
 version: '1.0.0'
-main: com.salteddoubao.relicplugin.MinecraftRelicSystem
+main: com.salteddoubao.relicsystem.MinecraftRelicSystem
 api-version: '1.20'
 prefix: MRS
 authors: [ SaltedDoubao ]
@@ -9,12 +9,8 @@ description: 圣遗物属性系统插件
 commands:
   relic:
     description: 圣遗物系统主命令
-    usage: /relic <list|open|>
+    usage: /relic <help|list|open|gen|give|equip|unequip|test|box|reload|migrate|migration-status>
     permission: mrs.user
-  relic-op:
-    description: 圣遗物系统管理员命令
-    usage: /relic <reload|equip|unequip|test|give>
-    permission: mrs.admin
 
 permissions:
   mrs.admin:

@@ -9,4 +9,85 @@ sets:
       four_piece_desc:
         - "持剑/双手剑/长柄武器时，普通攻击造成的伤害提升35%"
 
+  wanderer:
+    id: wanderer
+    name: "流浪大地的乐团"
+    bonuses:
+      two_piece_desc:
+        - "元素精通+80"
+      four_piece_desc:
+        - "法器/弓角色的重击伤害提升35%"
+
+  noblesse:
+    id: noblesse
+    name: "昔日宗室之仪"
+    bonuses:
+      two_piece_desc:
+        - "元素爆发伤害+20%"
+      four_piece_desc:
+        - "施放元素爆发后，队伍攻击力+20%（20s）"
+
+  blizzard:
+    id: blizzard
+    name: "冰风迷途的勇士"
+    bonuses:
+      two_piece_desc:
+        - "冰元素伤害加成+15%"
+      four_piece_desc:
+        - "攻击冰冻目标时暴击率提高20%"
+
+  thundering:
+    id: thundering
+    name: "如雷的盛怒"
+    bonuses:
+      two_piece_desc:
+        - "雷元素伤害加成+15%"
+      four_piece_desc:
+        - "超载、感电、超导伤害提升40%"
+
+  viridescent:
+    id: viridescent
+    name: "翠绿之影"
+    bonuses:
+      two_piece_desc:
+        - "风元素伤害加成+15%"
+      four_piece_desc:
+        - "扩散反应伤害提升60%"
+
+  heart_of_depth:
+    id: heart_of_depth
+    name: "沉沦之心"
+    bonuses:
+      two_piece_desc:
+        - "水元素伤害加成+15%"
+      four_piece_desc:
+        - "施放元素战技后，普通/重击伤害+30%（15s）"
+
+  pale_flame:
+    id: pale_flame
+    name: "苍白之火"
+    bonuses:
+      two_piece_desc:
+        - "物理伤害加成+25%"
+      four_piece_desc:
+        - "元素战技命中后攻击力+9%，2层后另有加成"
+
+  emblem:
+    id: emblem
+    name: "绝缘之旗印"
+    bonuses:
+      two_piece_desc:
+        - "元素充能效率+20%"
+      four_piece_desc:
+        - "基于充能提高元素爆发伤害，上限75%"
+
+  husk:
+    id: husk
+    name: "华馆梦醒形骸记"
+    bonuses:
+      two_piece_desc:
+        - "防御力+30%"
+      four_piece_desc:
+        - "重击命中后获得副效果，最多4层"
+
 

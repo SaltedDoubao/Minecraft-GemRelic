@@ -17,6 +17,12 @@ relic:
   # 属性计算方式：additive（加法）或 multiplicative（乘法）
   calculation_mode: additive
   
+  # 主词条随等级线性增长（每级=base+level*step）
+  mainstat:
+    scale: true
+    # 当 attribute_pool.yml 未指定 step 时使用该默认值
+    step_default: 1.0
+  
   # 仓库最大容量（仅YAML存储模式有效）
   warehouse_max_size: 1000
   

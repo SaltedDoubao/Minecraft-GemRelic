@@ -1,0 +1,19 @@
+# 圣遗物宝箱配置（模板示例）
+boxes:
+  starter_box:
+    display_name: "§6新手圣遗物宝箱"
+    material: CHEST
+    custom_model_data: 10001
+    glow: false
+    lore:
+      - "§7打开可获得随机圣遗物"
+    sets: [gladiator]
+    rarities: [WHITE, GREEN, BLUE]
+    # 权重：可省略，留空表示等概率
+    set_weights:
+      gladiator: 1
+    rarity_weights:
+      WHITE: 60
+      GREEN: 30
+      BLUE: 10
+
