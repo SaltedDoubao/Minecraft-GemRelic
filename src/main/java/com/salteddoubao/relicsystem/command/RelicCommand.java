@@ -13,6 +13,7 @@ import com.salteddoubao.relicsystem.relic.*;
 import com.salteddoubao.relicsystem.storage.DataMigration;
 import com.salteddoubao.relicsystem.storage.IRelicProfileManager;
 import com.salteddoubao.relicsystem.util.RelicItemConverter;
+import com.salteddoubao.relicsystem.service.RelicGenerationService;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -29,7 +30,8 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage("§6/relic list §7- 列出已配置的套装");
+            sender.sendMessage("§6/relic help §7- 查看命令帮助");
+            sender.sendMessage("§6/relic list [page] §7- 列出已配置的套装（支持翻页）");
             sender.sendMessage("§6/relic reload §7- 重载圣遗物配置");
             sender.sendMessage("§6/relic open §7- 打开圣遗物界面");
             if (sender.hasPermission("mrs.admin")) {
@@ -37,6 +39,7 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
                 sender.sendMessage("§6/relic equip <slot> <setId> §7- 穿戴（测试）");
                 sender.sendMessage("§6/relic unequip <slot> §7- 卸下（测试）");
                 sender.sendMessage("§6/relic test §7- 添加测试圣遗物");
+                sender.sendMessage("§6/relic box give <玩家> <宝箱id> [数量] §7- 发放宝箱");
                 sender.sendMessage("§6/relic migrate §7- 数据迁移到独立存储系统");
                 sender.sendMessage("§6/relic migration-status §7- 查看迁移状态");
             }
@@ -45,14 +48,57 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
 
         String sub = args[0].toLowerCase();
         switch (sub) {
-            case "list":
-                sender.sendMessage("§6§l==== 已配置套装 ====");
-                if (relicManager.getRelicSetIds().isEmpty()) {
-                    sender.sendMessage("§7暂无");
-                } else {
-                    relicManager.getRelicSetIds().forEach(id -> sender.sendMessage("§e- " + id));
+            case "help":
+                sender.sendMessage("§6§l==== Relic 命令帮助 ====");
+                sender.sendMessage("§e基础命令:");
+                sender.sendMessage("§6/relic help §7- 查看命令帮助");
+                sender.sendMessage("§6/relic list [page] §7- 列出套装（翻页）");
+                sender.sendMessage("§6/relic open §7- 打开圣遗物界面");
+                if (sender.hasPermission("mrs.admin")) {
+                    sender.sendMessage("§c管理员命令:");
+                    sender.sendMessage("§6/relic reload §7- 重载圣遗物配置");
+                    sender.sendMessage("§6/relic gen <setId> <slot> <rarity> <level> §7- 生成并发放到背包");
+                    sender.sendMessage("§6/relic give <player> <setId> <slot> <level> §7- 发放圣遗物");
+                    sender.sendMessage("§6/relic equip <slot> <setId> §7- 穿戴（测试）");
+                    sender.sendMessage("§6/relic unequip <slot> §7- 卸下（测试）");
+                    sender.sendMessage("§6/relic test §7- 发放测试圣遗物");
+                    sender.sendMessage("§6/relic box give <player> <boxId> [amount] §7- 发放宝箱");
+                    sender.sendMessage("§6/relic migrate §7- 迁移旧数据");
+                    sender.sendMessage("§6/relic migration-status §7- 查看迁移状态");
                 }
                 return true;
+            case "list":
+                {
+                    java.util.List<String> ids = new java.util.ArrayList<>(relicManager.getRelicSetIds());
+                    if (ids.isEmpty()) { sender.sendMessage("§7暂无套装"); return true; }
+                    // 排序：按中文名（若无则用ID）
+                    ids.sort(java.util.Comparator.comparing(id -> {
+                        com.salteddoubao.relicsystem.relic.RelicSet s = relicManager.getRelicSet(id);
+                        return s != null ? s.getName() : id;
+                    }));
+
+                    int pageSize = 6;
+                    int total = ids.size();
+                    int totalPages = (total + pageSize - 1) / pageSize;
+                    int page = 1;
+                    if (args.length >= 2) { try { page = Integer.parseInt(args[1]); } catch (Exception ignore) {} }
+                    if (page < 1) page = 1;
+                    if (page > totalPages) page = totalPages;
+
+                    int from = (page - 1) * pageSize;
+                    int to = Math.min(from + pageSize, total);
+                    sender.sendMessage("§6§l==== 已配置套装 §e" + page + "§6/§e" + totalPages + " §7(共" + total + ") ====");
+                    for (int i = from; i < to; i++) {
+                        String id = ids.get(i);
+                        com.salteddoubao.relicsystem.relic.RelicSet s = relicManager.getRelicSet(id);
+                        String name = s != null ? s.getName() : id;
+                        String four = (s != null && !s.getFourPieceEffects().isEmpty()) ? s.getFourPieceEffects().get(0) : "";
+                        String preview = four.length() > 28 ? four.substring(0, 28) + "..." : four;
+                        sender.sendMessage("§e- " + name + " §7(" + id + ") §f| §b四件套: §7" + preview);
+                    }
+                    if (page < totalPages) sender.sendMessage("§7下一页: §f/relic list " + (page + 1) + " §8(每页" + pageSize + "条)");
+                    return true;
+                }
             case "reload":
                 if (!sender.hasPermission("mrs.admin")) {
                     sender.sendMessage("§c无权限");
@@ -68,7 +114,32 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
                 }
                 new RelicMainMenuGUI(plugin).open((Player) sender);
                 return true;
+            case "gen":
+                if (!sender.hasPermission("mrs.admin")) { sender.sendMessage("§c无权限"); return true; }
+                if (!(sender instanceof Player)) { sender.sendMessage("§c仅玩家可用"); return true; }
+                if (args.length < 5) {
+                    sender.sendMessage("§c用法: /relic gen <套装id> <部位> <稀有度> <等级>");
+                    return true;
+                }
+                String genSet = args[1];
+                if (plugin.getRelicManager().getRelicSet(genSet) == null) { sender.sendMessage("§c未知套装: " + genSet); return true; }
+                RelicSlot genSlot;
+                try { genSlot = RelicSlot.valueOf(args[2].toUpperCase()); } catch (Exception ex) { sender.sendMessage("§c无效部位"); return true; }
+                RelicRarity genRarity;
+                try { genRarity = RelicRarity.valueOf(args[3].toUpperCase()); } catch (Exception ex) { sender.sendMessage("§c无效稀有度"); return true; }
+                int genLevel;
+                try { genLevel = Integer.parseInt(args[4]); } catch (Exception ex) { sender.sendMessage("§c等级必须是数字"); return true; }
+                if (genLevel < 0) genLevel = 0;
+
+                Player genPlayer = (Player) sender;
+                RelicGenerationService genSvc = plugin.getRelicGenerationService();
+                RelicData genData = genSvc.generate(genSet, genSlot, genRarity, genLevel);
+                RelicItemConverter genConv = plugin.getRelicItemConverter();
+                genPlayer.getInventory().addItem(genConv.toItemStack(genData));
+                sender.sendMessage("§a已生成并发放: " + genSet + " - " + genSlot + " (" + genRarity + ", Lv." + genData.getLevel() + ")");
+                return true;
             case "equip":
+                if (!sender.hasPermission("mrs.admin")) { sender.sendMessage("§c无权限"); return true; }
                 if (!(sender instanceof Player)) { sender.sendMessage("§c仅玩家可用"); return true; }
                 if (args.length < 3) { sender.sendMessage("§c用法: /relic equip <slot> <setId>"); return true; }
                 RelicSlot slot;
@@ -87,6 +158,7 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
                 sender.sendMessage("§a已穿戴: " + setId + " 到 " + slot);
                 return true;
             case "unequip":
+                if (!sender.hasPermission("mrs.admin")) { sender.sendMessage("§c无权限"); return true; }
                 if (!(sender instanceof Player)) { sender.sendMessage("§c仅玩家可用"); return true; }
                 if (args.length < 2) { sender.sendMessage("§c用法: /relic unequip <slot>"); return true; }
                 try {
@@ -102,6 +174,7 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
                 }
                 return true;
             case "test":
+                if (!sender.hasPermission("mrs.admin")) { sender.sendMessage("§c无权限"); return true; }
                 if (!(sender instanceof Player)) { sender.sendMessage("§c仅玩家可用"); return true; }
                 Player tp = (Player) sender;
                 RelicItemConverter converter = plugin.getRelicItemConverter();
@@ -172,6 +245,29 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
                 target.getInventory().addItem(conv.toItemStack(grant));
                 sender.sendMessage("§a已发放圣遗物给 " + target.getName());
                 if (!sender.equals(target)) { target.sendMessage("§a收到管理员发放的圣遗物: " + giveSetId + " - " + giveSlot); }
+                return true;
+            case "box":
+                if (!sender.hasPermission("mrs.admin")) { sender.sendMessage("§c无权限"); return true; }
+                if (args.length < 2) { sender.sendMessage("§c用法: /relic box <subcmd>"); return true; }
+                String bsub = args[1].toLowerCase();
+                if (bsub.equals("give")) {
+                    if (args.length < 4) { sender.sendMessage("§c用法: /relic box give <玩家> <宝箱id> [数量]"); return true; }
+                    org.bukkit.entity.Player tgt = plugin.getServer().getPlayerExact(args[2]);
+                    if (tgt == null) { sender.sendMessage("§c玩家不在线"); return true; }
+                    String boxId = args[3];
+                    if (plugin.getTreasureBoxManager().get(boxId) == null) { sender.sendMessage("§c未知宝箱: " + boxId); return true; }
+                    int amount = 1;
+                    if (args.length >= 5) { try { amount = Math.max(1, Integer.parseInt(args[4])); } catch (Exception ignore) {} }
+                    com.salteddoubao.relicsystem.util.TreasureBoxItemFactory fac = new com.salteddoubao.relicsystem.util.TreasureBoxItemFactory(plugin);
+                    com.salteddoubao.relicsystem.manager.TreasureBoxManager.BoxDef def = plugin.getTreasureBoxManager().get(boxId);
+                    org.bukkit.inventory.ItemStack item = fac.create(boxId, def.displayName, def.lore, def.material, def.customModelData, def.glow);
+                    item.setAmount(amount);
+                    tgt.getInventory().addItem(item);
+                    sender.sendMessage("§a已发放宝箱: " + boxId + " x" + amount);
+                    if (!sender.equals(tgt)) tgt.sendMessage("§a收到管理员发放的宝箱: " + boxId + " x" + amount);
+                    return true;
+                }
+                sender.sendMessage("§c未知子命令");
                 return true;
             case "migrate":
                 if (!sender.hasPermission("mrs.admin")) {
@@ -244,9 +340,9 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
         
         // 第一层：子命令补全
         if (args.length == 1) {
-            completions.addAll(List.of("list", "open", "test", "equip", "unequip", "give"));
+            completions.addAll(List.of("help", "list", "open"));
             if (sender.hasPermission("mrs.admin")) {
-                completions.addAll(List.of("reload", "migrate", "migration-status"));
+                completions.addAll(List.of("test", "equip", "unequip", "give", "gen", "box", "reload", "migrate", "migration-status"));
             }
             return filterCompletions(completions, args[0]);
         }
@@ -255,6 +351,11 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
         if (args.length == 2) {
             String subCommand = args[0].toLowerCase();
             
+            if (subCommand.equals("list")) {
+                completions.addAll(List.of("1", "2", "3", "4", "5"));
+                return filterCompletions(completions, args[1]);
+            }
+
             // equip 和 unequip 命令补全部位参数
             if (subCommand.equals("equip") || subCommand.equals("unequip")) {
                 completions.addAll(List.of("FLOWER", "PLUME", "SANDS", "GOBLET", "CIRCLET"));
@@ -264,9 +365,18 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
                 for (org.bukkit.entity.Player pl : plugin.getServer().getOnlinePlayers()) completions.add(pl.getName());
                 return filterCompletions(completions, args[1]);
             }
+            if (subCommand.equals("gen")) {
+                // gen 的第二个参数是套装ID
+                completions.addAll(relicManager.getRelicSetIds());
+                return filterCompletions(completions, args[1]);
+            }
+            if (subCommand.equals("box")) {
+                completions.add("give");
+                return filterCompletions(completions, args[1]);
+            }
         }
         
-        // 第三层：套装ID补全（仅 equip 命令）
+        // 第三层
         if (args.length == 3) {
             String subCommand = args[0].toLowerCase();
             
@@ -279,17 +389,42 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
                 completions.addAll(relicManager.getRelicSetIds());
                 return filterCompletions(completions, args[2]);
             }
+            if (subCommand.equals("gen")) {
+                // gen 的第三个参数是部位
+                completions.addAll(List.of("FLOWER", "PLUME", "SANDS", "GOBLET", "CIRCLET"));
+                return filterCompletions(completions, args[2]);
+            }
+            if (subCommand.equals("box") && args[1].equalsIgnoreCase("give")) {
+                for (org.bukkit.entity.Player pl : plugin.getServer().getOnlinePlayers()) completions.add(pl.getName());
+                return filterCompletions(completions, args[2]);
+            }
         }
         
-        // 第四层：部位
+        // 第四层
         if (args.length == 4 && args[0].equalsIgnoreCase("give")) {
+            // give 的第四个参数是部位
             completions.addAll(List.of("FLOWER", "PLUME", "SANDS", "GOBLET", "CIRCLET"));
             return filterCompletions(completions, args[3]);
         }
         
-        // 第五层：等级
-        if (args.length == 5 && args[0].equalsIgnoreCase("give")) {
-            completions.addAll(List.of("0", "4", "8", "12", "16", "20"));
+        // gen 的第四个参数是稀有度
+        if (args.length == 4 && args[0].equalsIgnoreCase("gen")) {
+            for (RelicRarity r : RelicRarity.values()) completions.add(r.name());
+            return filterCompletions(completions, args[3]);
+        }
+
+        // box give 的第四个参数是宝箱ID
+        if (args.length == 4 && args[0].equalsIgnoreCase("box") && args[1].equalsIgnoreCase("give")) {
+            completions.addAll(plugin.getTreasureBoxManager().ids());
+            return filterCompletions(completions, args[3]);
+        }
+
+        if (args.length == 5 && (args[0].equalsIgnoreCase("give") || args[0].equalsIgnoreCase("gen"))) {
+            completions.addAll(List.of("0", "5", "10", "15", "20", "25", "30"));
+            return filterCompletions(completions, args[4]);
+        }
+        if (args.length == 5 && args[0].equalsIgnoreCase("box") && args[1].equalsIgnoreCase("give")) {
+            completions.addAll(List.of("1", "8", "16", "32", "64"));
             return filterCompletions(completions, args[4]);
         }
         

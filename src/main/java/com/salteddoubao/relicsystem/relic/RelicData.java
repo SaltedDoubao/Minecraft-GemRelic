@@ -39,6 +39,21 @@ public class RelicData {
     public void setLocked(boolean locked) { this.locked = locked; }
     public void setLevel(int level) { this.level = level; }
     public void setExp(int exp) { this.exp = exp; }
+
+    // === 变更接口（供生成/升级服务调用） ===
+    public void addOrIncrementSubstat(RelicStatType type, double delta) {
+        for (RelicSubstat s : substats) {
+            if (s.getType() == type) { s.add(delta); return; }
+        }
+        substats.add(new RelicSubstat(type, delta));
+    }
+
+    public boolean hasSubstat(RelicStatType type) {
+        for (RelicSubstat s : substats) { if (s.getType() == type) return true; }
+        return false;
+    }
+
+    public int substatCount() { return substats.size(); }
 }
 
 

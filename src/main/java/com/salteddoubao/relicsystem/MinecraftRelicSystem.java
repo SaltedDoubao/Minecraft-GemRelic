@@ -5,9 +5,12 @@ import org.bukkit.plugin.java.JavaPlugin;
 import com.salteddoubao.relicsystem.command.RelicCommand;
 import com.salteddoubao.relicsystem.listener.PlayerListener;
 import com.salteddoubao.relicsystem.listener.RelicGUIListener;
+import com.salteddoubao.relicsystem.listener.TreasureBoxListener;
 import com.salteddoubao.relicsystem.manager.RelicManager;
+import com.salteddoubao.relicsystem.manager.TreasureBoxManager;
 import com.salteddoubao.relicsystem.service.AttributePlusBridge;
 import com.salteddoubao.relicsystem.service.RelicEffectService;
+import com.salteddoubao.relicsystem.service.RelicGenerationService;
 import com.salteddoubao.relicsystem.service.StatAggregationService;
 import com.salteddoubao.relicsystem.storage.IRelicProfileManager;
 import com.salteddoubao.relicsystem.storage.StorageFactory;
@@ -30,6 +33,8 @@ public class MinecraftRelicSystem extends JavaPlugin {
     private StatAggregationService statAggregationService;
     private AttributePlusBridge attributePlusBridge;
     private RelicItemConverter relicItemConverter;
+    private RelicGenerationService relicGenerationService;
+    private TreasureBoxManager treasureBoxManager;
 
     @Override
     public void onEnable() {
@@ -94,6 +99,8 @@ public class MinecraftRelicSystem extends JavaPlugin {
         relicEffectService = new RelicEffectService(this);
         statAggregationService = new StatAggregationService();
         attributePlusBridge = new AttributePlusBridge(this);
+        relicGenerationService = new RelicGenerationService(this);
+        treasureBoxManager = new TreasureBoxManager(this);
         
         getLogger().info("管理器初始化完成！");
     }
@@ -118,6 +125,7 @@ public class MinecraftRelicSystem extends JavaPlugin {
         getLogger().info("正在注册事件监听器...");
         getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
         getServer().getPluginManager().registerEvents(new RelicGUIListener(this), this);
+        getServer().getPluginManager().registerEvents(new TreasureBoxListener(this), this);
         getLogger().info("事件监听器注册完成！");
     }
 
@@ -137,6 +145,8 @@ public class MinecraftRelicSystem extends JavaPlugin {
     public StatAggregationService getStatAggregationService() { return statAggregationService; }
     public AttributePlusBridge getAttributePlusBridge() { return attributePlusBridge; }
     public RelicItemConverter getRelicItemConverter() { return relicItemConverter; }
+    public RelicGenerationService getRelicGenerationService() { return relicGenerationService; }
+    public TreasureBoxManager getTreasureBoxManager() { return treasureBoxManager; }
 
     // 仅重载圣遗物配置
     public void reloadRelicConfig() {
