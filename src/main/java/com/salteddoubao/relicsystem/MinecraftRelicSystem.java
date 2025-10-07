@@ -6,6 +6,7 @@ import com.salteddoubao.relicsystem.command.RelicCommand;
 import com.salteddoubao.relicsystem.listener.PlayerListener;
 import com.salteddoubao.relicsystem.listener.RelicGUIListener;
 import com.salteddoubao.relicsystem.listener.TreasureBoxListener;
+import com.salteddoubao.relicsystem.listener.CombatListener;
 import com.salteddoubao.relicsystem.manager.RelicManager;
 import com.salteddoubao.relicsystem.manager.TreasureBoxManager;
 import com.salteddoubao.relicsystem.service.AttributePlusBridge;
@@ -126,6 +127,7 @@ public class MinecraftRelicSystem extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
         getServer().getPluginManager().registerEvents(new RelicGUIListener(this), this);
         getServer().getPluginManager().registerEvents(new TreasureBoxListener(this), this);
+        getServer().getPluginManager().registerEvents(new CombatListener(this), this);
         getLogger().info("事件监听器注册完成！");
     }
 

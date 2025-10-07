@@ -11,6 +11,7 @@ import com.salteddoubao.relicsystem.MinecraftRelicSystem;
 import com.salteddoubao.relicsystem.relic.*;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -27,6 +28,7 @@ public class RelicWarehouseGUI {
     private static final int PREV_PAGE_SLOT = 39;
     private static final int NEXT_PAGE_SLOT = 41;
     private static final int FILTER_SLOT = 40;
+    private static final int SORT_SLOT = 43; // 排序方式切换按钮
     private static final int BACK_SLOT = 36;  // 返回主菜单
     private static final int PUT_IN_SLOT = 44;  // 从背包放入仓库按钮
 
@@ -34,7 +36,24 @@ public class RelicWarehouseGUI {
         this.plugin = plugin;
     }
 
+    // 排序模式
+    public enum SortMode {
+        RARITY_DESC("稀有度↓"),
+        LEVEL_DESC("等级↓"),
+        SET_ASC("套装↑"),
+        SLOT_ASC("部位↑"),
+        LOCKED_FIRST("锁定优先");
+
+        private final String display;
+        SortMode(String display) { this.display = display; }
+        public String getDisplay() { return display; }
+    }
+
     public void open(Player player, RelicSlot filterSlot, int page) {
+        open(player, filterSlot, page, SortMode.RARITY_DESC);
+    }
+
+    public void open(Player player, RelicSlot filterSlot, int page, SortMode sortMode) {
         PlayerRelicProfile profile = plugin.getRelicProfileManager().get(player);
         
         String title = TITLE_PREFIX;
@@ -42,6 +61,7 @@ public class RelicWarehouseGUI {
             title += " - " + getSlotDisplayName(filterSlot);
         }
         title += " (" + (page + 1) + ")";
+        title += " | §e排序: " + sortMode.getDisplay();
         
         Inventory inv = Bukkit.createInventory(null, 54, title);
         
@@ -49,10 +69,10 @@ public class RelicWarehouseGUI {
         setupBorder(inv);
         
         // 设置仓库分页显示
-        setupWarehouseDisplay(inv, profile, filterSlot, page);
+        setupWarehouseDisplay(inv, profile, filterSlot, page, sortMode);
         
         // 设置控制按钮
-        setupControls(inv, filterSlot, page, profile);
+        setupControls(inv, filterSlot, page, profile, sortMode);
         
         player.openInventory(inv);
     }
@@ -77,10 +97,13 @@ public class RelicWarehouseGUI {
         }
     }
 
-    private void setupWarehouseDisplay(Inventory inv, PlayerRelicProfile profile, RelicSlot filterSlot, int page) {
-        List<RelicData> items = filterSlot != null ? 
-            profile.getWarehouseBySlot(filterSlot) : 
+    private void setupWarehouseDisplay(Inventory inv, PlayerRelicProfile profile, RelicSlot filterSlot, int page, SortMode sortMode) {
+        List<RelicData> src = filterSlot != null ?
+            profile.getWarehouseBySlot(filterSlot) :
             profile.getWarehouse();
+        // 复制并按当前排序模式排序
+        List<RelicData> items = new ArrayList<>(src);
+        items.sort(getComparator(sortMode));
         
         // 如果仓库为空，显示提示物品
         if (items.isEmpty() && page == 0) {
@@ -106,7 +129,7 @@ public class RelicWarehouseGUI {
         }
     }
 
-    private void setupControls(Inventory inv, RelicSlot filterSlot, int page, PlayerRelicProfile profile) {
+    private void setupControls(Inventory inv, RelicSlot filterSlot, int page, PlayerRelicProfile profile, SortMode sortMode) {
         // 上一页按钮
         if (page > 0) {
             inv.setItem(PREV_PAGE_SLOT, createGuiItem(Material.ARROW, "§a上一页", 
@@ -125,6 +148,10 @@ public class RelicWarehouseGUI {
         String filterText = filterSlot != null ? getSlotDisplayName(filterSlot) : "全部";
         inv.setItem(FILTER_SLOT, createGuiItem(Material.HOPPER, "§e筛选: " + filterText, 
             List.of("§7点击切换筛选条件", "§7当前筛选: " + filterText)));
+
+        // 排序按钮
+        inv.setItem(SORT_SLOT, createGuiItem(Material.COMPARATOR, "§e排序: " + sortMode.getDisplay(),
+            List.of("§7点击切换排序方式", "§7当前排序: " + sortMode.getDisplay())));
             
         // 返回主菜单按钮
         inv.setItem(BACK_SLOT, createGuiItem(Material.BARRIER, "§c§l返回主菜单", 
@@ -133,6 +160,28 @@ public class RelicWarehouseGUI {
         // 从背包放入按钮
         inv.setItem(PUT_IN_SLOT, createGuiItem(Material.HOPPER, "§6§l放入圣遗物", 
             List.of("§7将背包中的圣遗物放入仓库", "§7右键点击此按钮执行操作")));
+    }
+
+    // 根据排序模式返回比较器
+    private Comparator<RelicData> getComparator(SortMode mode) {
+        Comparator<RelicData> byRarityDesc = Comparator.comparingInt((RelicData r) -> r.getRarity().getStars()).reversed();
+        Comparator<RelicData> byLevelDesc = Comparator.comparingInt(RelicData::getLevel).reversed();
+        Comparator<RelicData> bySetAsc = Comparator.comparing((RelicData r) -> {
+            RelicSet set = plugin.getRelicManager().getRelicSet(r.getSetId());
+            return set != null ? set.getName() : r.getSetId();
+        }, String.CASE_INSENSITIVE_ORDER);
+        Comparator<RelicData> bySlotAsc = Comparator.comparingInt(r -> r.getSlot().ordinal());
+        Comparator<RelicData> byLockedFirst = Comparator.comparing((RelicData r) -> !r.isLocked()); // locked=true 优先
+
+        Comparator<RelicData> tiebreakers = byRarityDesc.thenComparing(byLevelDesc).thenComparing(bySetAsc).thenComparing(bySlotAsc);
+
+        return switch (mode) {
+            case RARITY_DESC -> byRarityDesc.thenComparing(byLevelDesc).thenComparing(bySetAsc).thenComparing(bySlotAsc);
+            case LEVEL_DESC -> byLevelDesc.thenComparing(byRarityDesc).thenComparing(bySetAsc).thenComparing(bySlotAsc);
+            case SET_ASC -> bySetAsc.thenComparing(byRarityDesc).thenComparing(byLevelDesc).thenComparing(bySlotAsc);
+            case SLOT_ASC -> bySlotAsc.thenComparing(byRarityDesc).thenComparing(byLevelDesc).thenComparing(bySetAsc);
+            case LOCKED_FIRST -> byLockedFirst.thenComparing(tiebreakers);
+        };
     }
 
     private ItemStack createWarehouseItem(RelicData relic) {
@@ -251,6 +300,7 @@ public class RelicWarehouseGUI {
     public static int getPrevPageSlot() { return PREV_PAGE_SLOT; }
     public static int getNextPageSlot() { return NEXT_PAGE_SLOT; }
     public static int getFilterSlot() { return FILTER_SLOT; }
+    public static int getSortSlot() { return SORT_SLOT; }
     public static int getBackSlot() { return BACK_SLOT; }
     public static int getPutInSlot() { return PUT_IN_SLOT; }
 }

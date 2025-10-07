@@ -9,6 +9,7 @@ import org.bukkit.inventory.ItemStack;
 import com.salteddoubao.relicsystem.MinecraftRelicSystem;
 import com.salteddoubao.relicsystem.relic.PlayerRelicProfile;
 import com.salteddoubao.relicsystem.relic.RelicData;
+import com.salteddoubao.relicsystem.relic.RelicStatType;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -20,6 +21,8 @@ public class RelicEffectService {
     private final MinecraftRelicSystem plugin;
     // 已应用的修饰记录：player -> (attribute, modifier)
     private final Map<UUID, List<Applied>> applied = new HashMap<>();
+    // 聚合词条缓存，供战斗监听读取
+    private final Map<UUID, Map<RelicStatType, Double>> cachedStats = new HashMap<>();
 
     public RelicEffectService(MinecraftRelicSystem plugin) { this.plugin = plugin; }
 
@@ -43,15 +46,41 @@ public class RelicEffectService {
             applyPercentModifier(player, Attribute.GENERIC_ATTACK_DAMAGE, 0.35, "relic:gladiator:4pc");
         }
 
-        // 聚合词条并尝试下发AP
-        Map<com.salteddoubao.relicsystem.relic.RelicStatType, Double> statSum = plugin.getStatAggregationService().aggregate(profile);
+        // 聚合词条
+        Map<RelicStatType, Double> statSum = plugin.getStatAggregationService().aggregate(profile);
+        cachedStats.put(player.getUniqueId(), statSum);
+        // 若启用AP桥接，则交由AP处理；否则内部应用适配的原版属性（不涉及暴击/伤害类，交由 CombatListener 处理）
         plugin.getAttributePlusBridge().apply(player, statSum);
+        if (!plugin.getAttributePlusBridge().isEnabled()) {
+            // 攻速（%）
+            Double atkSpeed = statSum.get(RelicStatType.ATK_SPEED);
+            if (atkSpeed != null && atkSpeed != 0) {
+                applyPercentModifier(player, Attribute.GENERIC_ATTACK_SPEED, atkSpeed / 100.0, "relic:stat:ATK_SPEED");
+            }
+            // 移速（%）
+            Double moveSpeed = statSum.get(RelicStatType.MOVE_SPEED);
+            if (moveSpeed != null && moveSpeed != 0) {
+                applyPercentModifier(player, Attribute.GENERIC_MOVEMENT_SPEED, moveSpeed / 100.0, "relic:stat:MOVE_SPEED");
+            }
+            // 幸运（+）
+            Double luck = statSum.get(RelicStatType.LUCK);
+            if (luck != null && luck != 0) {
+                applyAdditiveModifier(player, Attribute.GENERIC_LUCK, luck, "relic:stat:LUCK");
+            }
+            // 击退抗性（0-1，来自百分数）
+            Double kbRes = statSum.get(RelicStatType.KB_RES);
+            if (kbRes != null && kbRes != 0) {
+                double v = Math.max(0.0, Math.min(1.0, kbRes / 100.0));
+                applyAdditiveModifier(player, Attribute.GENERIC_KNOCKBACK_RESISTANCE, v, "relic:stat:KB_RES");
+            }
+        }
         plugin.getLogger().info("[Relic] " + player.getName() + " 套装统计: " + count + ", 词条合计=" + statSum);
     }
 
     public void clear(Player player) {
         // 清理AP
         plugin.getAttributePlusBridge().clear(player);
+        cachedStats.remove(player.getUniqueId());
         List<Applied> list = applied.remove(player.getUniqueId());
         if (list == null) return;
         for (Applied a : list) {
@@ -69,6 +98,16 @@ public class RelicEffectService {
         // 先移除同名/同UUID，确保不会重复叠加
         removeExisting(inst, uuid, key);
         AttributeModifier mod = new AttributeModifier(uuid, key, value, AttributeModifier.Operation.MULTIPLY_SCALAR_1);
+        inst.addModifier(mod);
+        applied.computeIfAbsent(player.getUniqueId(), k -> new ArrayList<>()).add(new Applied(attribute, mod));
+    }
+
+    private void applyAdditiveModifier(Player player, Attribute attribute, double value, String key) {
+        AttributeInstance inst = player.getAttribute(attribute);
+        if (inst == null) return;
+        UUID uuid = computeUUID(player, attribute, key);
+        removeExisting(inst, uuid, key);
+        AttributeModifier mod = new AttributeModifier(uuid, key, value, AttributeModifier.Operation.ADD_NUMBER);
         inst.addModifier(mod);
         applied.computeIfAbsent(player.getUniqueId(), k -> new ArrayList<>()).add(new Applied(attribute, mod));
     }
@@ -101,6 +140,11 @@ public class RelicEffectService {
     private static class Applied {
         final Attribute attribute; final AttributeModifier modifier;
         Applied(Attribute a, AttributeModifier m) { this.attribute = a; this.modifier = m; }
+    }
+
+    public Map<RelicStatType, Double> getCachedStats(Player player) {
+        Map<RelicStatType, Double> m = cachedStats.get(player.getUniqueId());
+        return m != null ? java.util.Collections.unmodifiableMap(m) : java.util.Collections.emptyMap();
     }
 }
 

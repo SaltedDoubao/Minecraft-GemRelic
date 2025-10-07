@@ -13,6 +13,8 @@ import com.salteddoubao.relicsystem.gui.*;
 import com.salteddoubao.relicsystem.relic.*;
 import com.salteddoubao.relicsystem.util.RelicItemConverter;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -187,9 +189,8 @@ public class RelicGUIListener implements Listener {
         
         // 点击仓库物品
         if (isWarehouseSlot(slot)) {
-            List<RelicData> items = currentFilter != null ? 
-                profile.getWarehouseBySlot(currentFilter) : 
-                profile.getWarehouse();
+            RelicWarehouseGUI.SortMode sortMode = parseCurrentSortMode(title);
+            List<RelicData> items = getSortedWarehouse(profile, currentFilter, sortMode);
             
             int itemIndex = getWarehouseIndex(slot) + currentPage * RelicWarehouseGUI.getWarehouseSlots().length;
             if (itemIndex < items.size()) {
@@ -214,21 +215,29 @@ public class RelicGUIListener implements Listener {
                     }
                 }
                 
-                // 刷新仓库页面
-                new RelicWarehouseGUI(plugin).open(player, currentFilter, currentPage);
+                // 刷新仓库页面，保持排序
+                new RelicWarehouseGUI(plugin).open(player, currentFilter, currentPage, sortMode);
             }
             return;
         }
         
         // 控制按钮
         if (slot == RelicWarehouseGUI.getPrevPageSlot() && currentPage > 0) {
-            new RelicWarehouseGUI(plugin).open(player, currentFilter, currentPage - 1);
+            RelicWarehouseGUI.SortMode sortMode = parseCurrentSortMode(title);
+            new RelicWarehouseGUI(plugin).open(player, currentFilter, currentPage - 1, sortMode);
         } else if (slot == RelicWarehouseGUI.getNextPageSlot()) {
-            new RelicWarehouseGUI(plugin).open(player, currentFilter, currentPage + 1);
+            RelicWarehouseGUI.SortMode sortMode = parseCurrentSortMode(title);
+            new RelicWarehouseGUI(plugin).open(player, currentFilter, currentPage + 1, sortMode);
         } else if (slot == RelicWarehouseGUI.getFilterSlot()) {
             // 循环切换筛选条件
+            RelicWarehouseGUI.SortMode sortMode = parseCurrentSortMode(title);
             RelicSlot nextFilter = getNextFilter(currentFilter);
-            new RelicWarehouseGUI(plugin).open(player, nextFilter, 0);
+            new RelicWarehouseGUI(plugin).open(player, nextFilter, 0, sortMode);
+        } else if (slot == RelicWarehouseGUI.getSortSlot()) {
+            // 切换排序方式
+            RelicWarehouseGUI.SortMode sortMode = parseCurrentSortMode(title);
+            RelicWarehouseGUI.SortMode next = getNextSortMode(sortMode);
+            new RelicWarehouseGUI(plugin).open(player, currentFilter, 0, next);
         }
     }
     
@@ -254,6 +263,8 @@ public class RelicGUIListener implements Listener {
             player.sendMessage("§a已将 " + putInCount + " 件圣遗物放入仓库");
             plugin.getRelicProfileManager().save(player);
             // 刷新仓库页面
+            // 保持当前排序
+            // 注意：无法直接获知排序，只能在外层调用处传入。此处回退为默认排序。
             new RelicWarehouseGUI(plugin).open(player, currentFilter, currentPage);
         } else {
             player.sendMessage("§c背包中没有圣遗物物品");
@@ -263,7 +274,8 @@ public class RelicGUIListener implements Listener {
     private void handleRefreshWarehouse(Player player, String title) {
         RelicSlot currentFilter = parseCurrentFilter(title);
         int currentPage = parseCurrentPage(title);
-        new RelicWarehouseGUI(plugin).open(player, currentFilter, currentPage);
+        RelicWarehouseGUI.SortMode sortMode = parseCurrentSortMode(title);
+        new RelicWarehouseGUI(plugin).open(player, currentFilter, currentPage, sortMode);
     }
 
     private RelicSlot parseCurrentFilter(String title) {
@@ -283,6 +295,15 @@ public class RelicGUIListener implements Listener {
             } catch (NumberFormatException ignored) {}
         }
         return 0;
+    }
+
+    private RelicWarehouseGUI.SortMode parseCurrentSortMode(String title) {
+        for (RelicWarehouseGUI.SortMode mode : RelicWarehouseGUI.SortMode.values()) {
+            if (title.contains(mode.getDisplay())) {
+                return mode;
+            }
+        }
+        return RelicWarehouseGUI.SortMode.RARITY_DESC;
     }
 
     private boolean isWarehouseSlot(int slot) {
@@ -311,6 +332,38 @@ public class RelicGUIListener implements Listener {
             }
         }
         return null;
+    }
+
+    private RelicWarehouseGUI.SortMode getNextSortMode(RelicWarehouseGUI.SortMode current) {
+        RelicWarehouseGUI.SortMode[] modes = RelicWarehouseGUI.SortMode.values();
+        for (int i = 0; i < modes.length; i++) {
+            if (modes[i] == current) {
+                return i == modes.length - 1 ? modes[0] : modes[i + 1];
+            }
+        }
+        return RelicWarehouseGUI.SortMode.RARITY_DESC;
+    }
+
+    private List<RelicData> getSortedWarehouse(PlayerRelicProfile profile, RelicSlot filter, RelicWarehouseGUI.SortMode mode) {
+        List<RelicData> list = new ArrayList<>(filter != null ? profile.getWarehouseBySlot(filter) : profile.getWarehouse());
+        Comparator<RelicData> byRarityDesc = Comparator.comparingInt((RelicData r) -> r.getRarity().getStars()).reversed();
+        Comparator<RelicData> byLevelDesc = Comparator.comparingInt(RelicData::getLevel).reversed();
+        Comparator<RelicData> bySetAsc = Comparator.comparing((RelicData r) -> r.getSetId(), String.CASE_INSENSITIVE_ORDER);
+        Comparator<RelicData> bySlotAsc = Comparator.comparingInt(r -> r.getSlot().ordinal());
+        Comparator<RelicData> byLockedFirst = Comparator.comparing((RelicData r) -> !r.isLocked());
+
+        Comparator<RelicData> tiebreakers = byRarityDesc.thenComparing(byLevelDesc).thenComparing(bySetAsc).thenComparing(bySlotAsc);
+        Comparator<RelicData> cmp;
+        switch (mode) {
+            case RARITY_DESC -> cmp = byRarityDesc.thenComparing(byLevelDesc).thenComparing(bySetAsc).thenComparing(bySlotAsc);
+            case LEVEL_DESC -> cmp = byLevelDesc.thenComparing(byRarityDesc).thenComparing(bySetAsc).thenComparing(bySlotAsc);
+            case SET_ASC -> cmp = bySetAsc.thenComparing(byRarityDesc).thenComparing(byLevelDesc).thenComparing(bySlotAsc);
+            case SLOT_ASC -> cmp = bySlotAsc.thenComparing(byRarityDesc).thenComparing(byLevelDesc).thenComparing(bySetAsc);
+            case LOCKED_FIRST -> cmp = byLockedFirst.thenComparing(tiebreakers);
+            default -> cmp = tiebreakers;
+        }
+        list.sort(cmp);
+        return list;
     }
 
     private String getSlotDisplayName(RelicSlot slot) {

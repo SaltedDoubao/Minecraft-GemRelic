@@ -45,7 +45,7 @@ public class StorageFactory {
                 return new RelicProfileManager(plugin);
                 
             case INVENTORY:
-                plugin.getLogger().info("使用独立存储模式（推荐）- 类似末影箱原理，但不占用末影箱");
+                plugin.getLogger().info("使用独立存储模式（推荐）");
                 return new InventoryProfileManager(plugin);
                 
             default:
