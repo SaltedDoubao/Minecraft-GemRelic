@@ -185,13 +185,17 @@ public class RelicWarehouseGUI {
     }
 
     private ItemStack createWarehouseItem(RelicData relic) {
-        Material material = getRarityMaterial(relic.getRarity());
+        // 优先按套装模板物品展示
+        RelicSet setRef = plugin.getRelicManager().getRelicSet(relic.getSetId());
+        Material material = (setRef != null && setRef.getTemplateMaterial() != null)
+                ? setRef.getTemplateMaterial()
+                : getRarityMaterial(relic.getRarity());
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         
         if (meta != null) {
-            RelicSet set = plugin.getRelicManager().getRelicSet(relic.getSetId());
-            String setName = set != null ? set.getName() : relic.getSetId();
+            RelicSet set = setRef;
+            String setName = setRef != null ? setRef.getName() : relic.getSetId();
             meta.setDisplayName(getRarityColor(relic.getRarity()) + setName + " - " + getSlotDisplayName(relic.getSlot()));
             
             List<String> lore = new ArrayList<>();
@@ -222,6 +226,13 @@ public class RelicWarehouseGUI {
             lore.add("§e右键：取出到背包");
             
             meta.setLore(lore);
+            // 非0级展示发光效果
+            if (relic.getLevel() > 0) {
+                try {
+                    meta.addEnchant(org.bukkit.enchantments.Enchantment.DURABILITY, 1, true);
+                    meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
+                } catch (Throwable ignore) {}
+            }
             item.setItemMeta(meta);
         }
         

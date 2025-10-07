@@ -129,7 +129,7 @@ public class StorageFactory {
         StorageMode mode = getStorageMode();
         return switch (mode) {
             case YAML -> "传统的YAML文件存储方式，兼容旧版本";
-            case INVENTORY -> "独立的圣遗物存储系统，类似末影箱原理但不占用末影箱，数据更可靠";
+            case INVENTORY -> "独立的圣遗物存储系统，数据更可靠";
         };
     }
 }

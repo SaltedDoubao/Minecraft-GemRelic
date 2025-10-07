@@ -49,37 +49,55 @@ public class RelicEffectService {
         // 聚合词条
         Map<RelicStatType, Double> statSum = plugin.getStatAggregationService().aggregate(profile);
         cachedStats.put(player.getUniqueId(), statSum);
-        // 若启用AP桥接，则交由AP处理；否则内部应用适配的原版属性（不涉及暴击/伤害类，交由 CombatListener 处理）
-        plugin.getAttributePlusBridge().apply(player, statSum);
-        if (!plugin.getAttributePlusBridge().isEnabled()) {
-            // 攻速（%）
-            Double atkSpeed = statSum.get(RelicStatType.ATK_SPEED);
-            if (atkSpeed != null && atkSpeed != 0) {
-                applyPercentModifier(player, Attribute.GENERIC_ATTACK_SPEED, atkSpeed / 100.0, "relic:stat:ATK_SPEED");
+        // 内置属性应用（不依赖任何外部插件）
+        // 生命（最大生命值）：平添与百分比
+        Double hpFlat = statSum.get(RelicStatType.HP_FLAT);
+        if (hpFlat != null && hpFlat != 0) {
+            applyAdditiveModifier(player, Attribute.GENERIC_MAX_HEALTH, hpFlat, "relic:stat:HP_FLAT");
+        }
+        Double hpPct = statSum.get(RelicStatType.HP_PCT);
+        if (hpPct != null && hpPct != 0) {
+            applyPercentModifier(player, Attribute.GENERIC_MAX_HEALTH, hpPct / 100.0, "relic:stat:HP_PCT");
+        }
+        // 若当前生命超过最大生命，进行一次钳制
+        try {
+            AttributeInstance maxHp = player.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+            if (maxHp != null && player.getHealth() > maxHp.getValue()) {
+                player.setHealth(maxHp.getValue());
             }
-            // 移速（%）
-            Double moveSpeed = statSum.get(RelicStatType.MOVE_SPEED);
-            if (moveSpeed != null && moveSpeed != 0) {
-                applyPercentModifier(player, Attribute.GENERIC_MOVEMENT_SPEED, moveSpeed / 100.0, "relic:stat:MOVE_SPEED");
-            }
-            // 幸运（+）
-            Double luck = statSum.get(RelicStatType.LUCK);
-            if (luck != null && luck != 0) {
-                applyAdditiveModifier(player, Attribute.GENERIC_LUCK, luck, "relic:stat:LUCK");
-            }
-            // 击退抗性（0-1，来自百分数）
-            Double kbRes = statSum.get(RelicStatType.KB_RES);
-            if (kbRes != null && kbRes != 0) {
-                double v = Math.max(0.0, Math.min(1.0, kbRes / 100.0));
-                applyAdditiveModifier(player, Attribute.GENERIC_KNOCKBACK_RESISTANCE, v, "relic:stat:KB_RES");
-            }
+        } catch (Throwable ignore) {}
+
+        // 攻速（%）
+        Double atkSpeed = statSum.get(RelicStatType.ATK_SPEED);
+        if (atkSpeed != null && atkSpeed != 0) {
+            applyPercentModifier(player, Attribute.GENERIC_ATTACK_SPEED, atkSpeed / 100.0, "relic:stat:ATK_SPEED");
+        }
+        // 攻击力（平添）：作为原版攻击力的加法修饰，由伤害事件再叠加百分比与暴击
+        Double atkFlat = statSum.get(RelicStatType.ATK_FLAT);
+        if (atkFlat != null && atkFlat != 0) {
+            applyAdditiveModifier(player, Attribute.GENERIC_ATTACK_DAMAGE, atkFlat, "relic:stat:ATK_FLAT");
+        }
+        // 移速（%）
+        Double moveSpeed = statSum.get(RelicStatType.MOVE_SPEED);
+        if (moveSpeed != null && moveSpeed != 0) {
+            applyPercentModifier(player, Attribute.GENERIC_MOVEMENT_SPEED, moveSpeed / 100.0, "relic:stat:MOVE_SPEED");
+        }
+        // 幸运（+）
+        Double luck = statSum.get(RelicStatType.LUCK);
+        if (luck != null && luck != 0) {
+            applyAdditiveModifier(player, Attribute.GENERIC_LUCK, luck, "relic:stat:LUCK");
+        }
+        // 击退抗性（0-1，来自百分数）
+        Double kbRes = statSum.get(RelicStatType.KB_RES);
+        if (kbRes != null && kbRes != 0) {
+            double v = Math.max(0.0, Math.min(1.0, kbRes / 100.0));
+            applyAdditiveModifier(player, Attribute.GENERIC_KNOCKBACK_RESISTANCE, v, "relic:stat:KB_RES");
         }
         plugin.getLogger().info("[Relic] " + player.getName() + " 套装统计: " + count + ", 词条合计=" + statSum);
     }
 
     public void clear(Player player) {
-        // 清理AP
-        plugin.getAttributePlusBridge().clear(player);
+        // 清理缓存与原版属性
         cachedStats.remove(player.getUniqueId());
         List<Applied> list = applied.remove(player.getUniqueId());
         if (list == null) return;

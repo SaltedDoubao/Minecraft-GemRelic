@@ -58,7 +58,10 @@ public class AttributePlusBridge {
                             .replace("%namespace%", namespace)
                             .replace("%key%", key)
                             .replace("%value%", numberFormat.format(value));
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+                    boolean ok = Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+                    if (!ok) {
+                        plugin.getLogger().warning("[AP] 命令执行失败, 请检查 AttributePlus 指令模板是否正确: " + cmd);
+                    }
                 }
             }
             lastApplied.put(player.getUniqueId(), new HashMap<>(translated));
@@ -79,7 +82,10 @@ public class AttributePlusBridge {
                             .replace("%player%", player.getName())
                             .replace("%uuid%", player.getUniqueId().toString())
                             .replace("%namespace%", namespace);
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+                    boolean ok = Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+                    if (!ok) {
+                        plugin.getLogger().warning("[AP] 清理命令执行失败, 请检查 AttributePlus 指令模板是否正确: " + cmd);
+                    }
                 }
             } else {
                 // 若未配置 clear_all，则回退为对上次下发的每个键执行 value=0 的 applyEach 模板
@@ -93,7 +99,10 @@ public class AttributePlusBridge {
                                     .replace("%namespace%", namespace)
                                     .replace("%key%", key)
                                     .replace("%value%", "0");
-                            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+                            boolean ok = Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+                            if (!ok) {
+                                plugin.getLogger().warning("[AP] 清理命令执行失败, 请检查 AttributePlus 指令模板是否正确: " + cmd);
+                            }
                         }
                     }
                 }

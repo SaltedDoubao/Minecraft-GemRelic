@@ -25,8 +25,7 @@ public class CombatListener implements Listener {
 
     @EventHandler
     public void onDamageByEntity(EntityDamageByEntityEvent event) {
-        // 若 AP 桥接启用，交由 AP 处理，避免双重结算
-        if (plugin.getAttributePlusBridge().isEnabled()) return;
+        // 已移除 AP 集成：始终由内置引擎处理
         if (!(event.getDamager() instanceof Player player)) return;
         if (!(event.getEntity() instanceof LivingEntity)) return;
         // 从缓存读取聚合词条
@@ -35,7 +34,7 @@ public class CombatListener implements Listener {
 
         double damage = event.getDamage();
 
-        // 攻击力加成（两种：平A攻强/百分比攻强，示例中仅用 ATK_PCT）
+        // 攻击力百分比乘区（与原版基础+平添叠乘）
         double atkPct = stats.getOrDefault(RelicStatType.ATK_PCT, 0.0) / 100.0;
         if (atkPct != 0) damage *= (1.0 + atkPct);
 
@@ -58,8 +57,7 @@ public class CombatListener implements Listener {
 
     @EventHandler
     public void onAnyDamage(EntityDamageEvent event) {
-        // 若 AP 桥接启用，交由 AP 处理，避免双重结算
-        if (plugin.getAttributePlusBridge().isEnabled()) return;
+        // 已移除 AP 集成：始终由内置引擎处理
         if (!(event.getEntity() instanceof Player player)) return;
         Map<RelicStatType, Double> stats = plugin.getRelicEffectService().getCachedStats(player);
         if (stats.isEmpty()) return;

@@ -30,14 +30,23 @@ public class RelicItemConverter {
      * 将圣遗物转换为ItemStack
      */
     public ItemStack toItemStack(RelicData relic) {
-        Material material = getRarityMaterial(relic.getRarity());
+        // 优先使用套装模板物品展示，以区分不同套装
+        Material material = null;
+        RelicSet set = plugin.getRelicManager().getRelicSet(relic.getSetId());
+        if (set != null && set.getTemplateMaterial() != null) {
+            material = set.getTemplateMaterial();
+        }
+        if (material == null) {
+            material = getRarityMaterial(relic.getRarity());
+        }
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         
         if (meta != null) {
             // 设置显示名称
-            RelicSet set = plugin.getRelicManager().getRelicSet(relic.getSetId());
-            String setName = set != null ? set.getName() : relic.getSetId();
+            RelicSet setRef = set;
+            if (setRef == null) setRef = plugin.getRelicManager().getRelicSet(relic.getSetId());
+            String setName = setRef != null ? setRef.getName() : relic.getSetId();
             meta.setDisplayName(getRarityColor(relic.getRarity()) + setName + " - " + getSlotDisplayName(relic.getSlot()));
             
             // 设置描述
@@ -46,14 +55,14 @@ public class RelicItemConverter {
             lore.add("§7");
             
             // 套装效果预览
-            if (set != null) {
+            if (setRef != null) {
                 lore.add("§6套装效果:");
                 lore.add("  §e两件套");
-                for (String desc : set.getTwoPieceEffects()) {
+                for (String desc : setRef.getTwoPieceEffects()) {
                     lore.add("    §7- " + desc);
                 }
                 lore.add("  §e四件套");
-                for (String desc : set.getFourPieceEffects()) {
+                for (String desc : setRef.getFourPieceEffects()) {
                     lore.add("    §7- " + desc);
                 }
                 lore.add("§7");
@@ -87,6 +96,13 @@ public class RelicItemConverter {
             PersistentDataContainer pdc = meta.getPersistentDataContainer();
             pdc.set(relicDataKey, PersistentDataType.STRING, serializeRelicData(relic));
             
+            // 非0级时附魔发光
+            if (relic.getLevel() > 0) {
+                try {
+                    meta.addEnchant(org.bukkit.enchantments.Enchantment.DURABILITY, 1, true);
+                    meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
+                } catch (Throwable ignore) {}
+            }
             item.setItemMeta(meta);
         }
         

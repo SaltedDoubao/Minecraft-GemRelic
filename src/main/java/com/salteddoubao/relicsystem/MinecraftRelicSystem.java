@@ -9,7 +9,6 @@ import com.salteddoubao.relicsystem.listener.TreasureBoxListener;
 import com.salteddoubao.relicsystem.listener.CombatListener;
 import com.salteddoubao.relicsystem.manager.RelicManager;
 import com.salteddoubao.relicsystem.manager.TreasureBoxManager;
-import com.salteddoubao.relicsystem.service.AttributePlusBridge;
 import com.salteddoubao.relicsystem.service.RelicEffectService;
 import com.salteddoubao.relicsystem.service.RelicGenerationService;
 import com.salteddoubao.relicsystem.service.StatAggregationService;
@@ -32,7 +31,6 @@ public class MinecraftRelicSystem extends JavaPlugin {
     private StorageFactory storageFactory;
     private RelicEffectService relicEffectService;
     private StatAggregationService statAggregationService;
-    private AttributePlusBridge attributePlusBridge;
     private RelicItemConverter relicItemConverter;
     private RelicGenerationService relicGenerationService;
     private TreasureBoxManager treasureBoxManager;
@@ -99,7 +97,6 @@ public class MinecraftRelicSystem extends JavaPlugin {
         relicProfileManager = storageFactory.createProfileManager();
         relicEffectService = new RelicEffectService(this);
         statAggregationService = new StatAggregationService();
-        attributePlusBridge = new AttributePlusBridge(this);
         relicGenerationService = new RelicGenerationService(this);
         treasureBoxManager = new TreasureBoxManager(this);
         
@@ -145,7 +142,7 @@ public class MinecraftRelicSystem extends JavaPlugin {
     public StorageFactory getStorageFactory() { return storageFactory; }
     public RelicEffectService getRelicEffectService() { return relicEffectService; }
     public StatAggregationService getStatAggregationService() { return statAggregationService; }
-    public AttributePlusBridge getAttributePlusBridge() { return attributePlusBridge; }
+    // 已移除 AP 依赖，使用内置属性引擎
     public RelicItemConverter getRelicItemConverter() { return relicItemConverter; }
     public RelicGenerationService getRelicGenerationService() { return relicGenerationService; }
     public TreasureBoxManager getTreasureBoxManager() { return treasureBoxManager; }

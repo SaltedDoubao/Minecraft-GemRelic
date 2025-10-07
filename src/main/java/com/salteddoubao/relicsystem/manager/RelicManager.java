@@ -48,9 +48,17 @@ public class RelicManager {
             ConfigurationSection s = sec.getConfigurationSection(id);
             if (s == null) continue;
             String name = s.getString("name", id);
+            // 模板物品，若未配置则使用默认：AMETHYST_SHARD
+            org.bukkit.Material template = org.bukkit.Material.AMETHYST_SHARD;
+            String mat = s.getString("template_item");
+            if (mat != null && !mat.isEmpty()) {
+                try {
+                    template = org.bukkit.Material.valueOf(mat.toUpperCase());
+                } catch (IllegalArgumentException ignore) {}
+            }
             List<String> two = s.getStringList("bonuses.two_piece_desc");
             List<String> four = s.getStringList("bonuses.four_piece_desc");
-            RelicSet rs = new RelicSet(id, name, two, four);
+            RelicSet rs = new RelicSet(id, name, two, four, template);
             setRegistry.put(id, rs);
         }
         plugin.getLogger().info("RelicManager: 已加载套装数量=" + setRegistry.size());
