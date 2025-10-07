@@ -3,14 +3,14 @@ main_stats:
   # 生之花主词条固定：生命值（非百分比）
   HP_FLAT:
     slots: [FLOWER]
-    base: 4780
-    step: 120
+    base: 10
+    step: 4
 
   # 死之羽主词条固定：攻击力（非百分比）
   ATK_FLAT:
     slots: [PLUME]
-    base: 311
-    step: 8
+    base: 10
+    step: 2
 
   # 百分比类主词条（理之冠、空之杯、时之沙可出现）
   ATK_PCT:
