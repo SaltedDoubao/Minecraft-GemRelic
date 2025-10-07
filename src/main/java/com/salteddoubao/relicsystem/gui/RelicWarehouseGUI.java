@@ -5,6 +5,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import com.salteddoubao.relicsystem.MinecraftRelicSystem;
@@ -63,7 +64,9 @@ public class RelicWarehouseGUI {
         title += " (" + (page + 1) + ")";
         title += " | §e排序: " + sortMode.getDisplay();
         
-        Inventory inv = Bukkit.createInventory(null, 54, title);
+        Holder holder = new Holder();
+        Inventory inv = Bukkit.createInventory(holder, 54, title);
+        holder.setInventory(inv);
         
         // 设置边框
         setupBorder(inv);
@@ -314,4 +317,11 @@ public class RelicWarehouseGUI {
     public static int getSortSlot() { return SORT_SLOT; }
     public static int getBackSlot() { return BACK_SLOT; }
     public static int getPutInSlot() { return PUT_IN_SLOT; }
+
+    public static class Holder implements InventoryHolder {
+        private Inventory inventory;
+        @Override
+        public Inventory getInventory() { return inventory; }
+        public void setInventory(Inventory inventory) { this.inventory = inventory; }
+    }
 }

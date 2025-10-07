@@ -30,12 +30,15 @@ public class RelicGUIListener implements Listener {
         if (!(e.getWhoClicked() instanceof Player)) return;
         Player player = (Player) e.getWhoClicked();
         String title = e.getView().getTitle();
+        boolean topIsRelicGui = e.getView().getTopInventory() != null && e.getView().getTopInventory().getHolder() instanceof RelicMainMenuGUI.Holder
+                || e.getView().getTopInventory() != null && e.getView().getTopInventory().getHolder() instanceof RelicEquipmentGUI.Holder
+                || e.getView().getTopInventory() != null && e.getView().getTopInventory().getHolder() instanceof RelicWarehouseGUI.Holder;
         
         // 主菜单
-        if (title.equals(RelicMainMenuGUI.TITLE)) {
+        if (title.equals(RelicMainMenuGUI.TITLE) && topIsRelicGui) {
             e.setCancelled(true);
             // 只处理顶部GUI的点击，不处理玩家背包的点击
-            if (e.getClickedInventory() == null || e.getClickedInventory().getHolder() != null) {
+            if (e.getClickedInventory() == null || e.getClickedInventory().getHolder() == null) {
                 return;
             }
             handleMainMenuClick(player, e);
@@ -43,10 +46,10 @@ public class RelicGUIListener implements Listener {
         }
         
         // 装备页面
-        if (title.equals(RelicEquipmentGUI.TITLE)) {
+        if (title.equals(RelicEquipmentGUI.TITLE) && topIsRelicGui) {
             e.setCancelled(true);
             // 只处理顶部GUI的点击
-            if (e.getClickedInventory() == null || e.getClickedInventory().getHolder() != null) {
+            if (e.getClickedInventory() == null || e.getClickedInventory().getHolder() == null) {
                 return;
             }
             handleEquipmentClick(player, e);
@@ -54,11 +57,11 @@ public class RelicGUIListener implements Listener {
         }
         
         // 仓库界面
-        if (title.startsWith(RelicWarehouseGUI.TITLE_PREFIX)) {
+        if (title.startsWith(RelicWarehouseGUI.TITLE_PREFIX) && topIsRelicGui) {
             if (e.getClickedInventory() == null) return;
 
             // 顶部GUI点击：完全接管
-            if (e.getClickedInventory().getHolder() == null) {
+            if (e.getClickedInventory().getHolder() instanceof RelicWarehouseGUI.Holder) {
                 e.setCancelled(true);
 
                 // 若鼠标携带圣遗物并点击仓库区域，则放入仓库
@@ -83,7 +86,7 @@ public class RelicGUIListener implements Listener {
             }
 
             // 底部背包点击：支持Shift-点击快速存入仓库
-            if (e.getClickedInventory().getHolder() != null) {
+            if (!(e.getClickedInventory().getHolder() instanceof RelicWarehouseGUI.Holder)) {
                 ItemStack clicked = e.getCurrentItem();
                 if (clicked != null && plugin.getRelicItemConverter().isRelicItem(clicked)
                         && (e.getClick() == ClickType.SHIFT_LEFT || e.getClick() == ClickType.SHIFT_RIGHT)) {

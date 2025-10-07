@@ -5,6 +5,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import com.salteddoubao.relicsystem.MinecraftRelicSystem;
@@ -36,7 +37,9 @@ public class RelicEquipmentGUI {
     
     public void open(Player player) {
         PlayerRelicProfile profile = plugin.getRelicProfileManager().get(player);
-        Inventory inv = Bukkit.createInventory(null, 45, TITLE);
+        Holder holder = new Holder();
+        Inventory inv = Bukkit.createInventory(holder, 45, TITLE);
+        holder.setInventory(inv);
         
         // 设置边框
         setupBorder(inv);
@@ -151,13 +154,17 @@ public class RelicEquipmentGUI {
     }
     
     private ItemStack createEquippedItem(RelicData relic) {
-        Material material = getRarityMaterial(relic.getRarity());
+        // 优先使用套装模板材质
+        RelicSet setRef = plugin.getRelicManager().getRelicSet(relic.getSetId());
+        Material material = (setRef != null && setRef.getTemplateMaterial() != null)
+                ? setRef.getTemplateMaterial()
+                : getRarityMaterial(relic.getRarity());
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         
         if (meta != null) {
-            RelicSet set = plugin.getRelicManager().getRelicSet(relic.getSetId());
-            String setName = set != null ? set.getName() : relic.getSetId();
+            RelicSet set = setRef;
+            String setName = setRef != null ? setRef.getName() : relic.getSetId();
             meta.setDisplayName("§a[已装备] " + getRarityColor(relic.getRarity()) + setName);
             
             List<String> lore = new ArrayList<>();
@@ -266,4 +273,11 @@ public class RelicEquipmentGUI {
     public static int getGobletSlot() { return GOBLET_SLOT; }
     public static int getCircletSlot() { return CIRCLET_SLOT; }
     public static int getBackSlot() { return BACK_SLOT; }
+
+    public static class Holder implements InventoryHolder {
+        private Inventory inventory;
+        @Override
+        public Inventory getInventory() { return inventory; }
+        public void setInventory(Inventory inventory) { this.inventory = inventory; }
+    }
 }

@@ -28,6 +28,8 @@ public class CombatListener implements Listener {
         // 已移除 AP 集成：始终由内置引擎处理
         if (!(event.getDamager() instanceof Player player)) return;
         if (!(event.getEntity() instanceof LivingEntity)) return;
+        // 仅在手持近战武器时应用伤害类加成，避免空手过强
+        if (!isMeleeMainhand(player)) return;
         // 从缓存读取聚合词条
         Map<RelicStatType, Double> stats = plugin.getRelicEffectService().getCachedStats(player);
         if (stats.isEmpty()) return;
@@ -68,6 +70,13 @@ public class CombatListener implements Listener {
         double damage = event.getDamage();
         damage *= Math.max(0.0, 1.0 - Math.min(0.9, defPct));
         event.setDamage(damage);
+    }
+
+    private boolean isMeleeMainhand(Player player) {
+        org.bukkit.inventory.ItemStack m = player.getInventory().getItemInMainHand();
+        if (m == null) return false;
+        String n = m.getType().name();
+        return n.endsWith("_SWORD") || n.endsWith("_AXE") || n.equals("TRIDENT");
     }
 }
 

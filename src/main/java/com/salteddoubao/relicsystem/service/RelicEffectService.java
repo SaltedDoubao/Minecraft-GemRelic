@@ -37,12 +37,12 @@ public class RelicEffectService {
 
         // 示例：角斗士的终幕礼 两件/四件
         int gladiator = count.getOrDefault("gladiator", 0);
-        if (gladiator >= 2) {
-            // 攻击力 +18% → attack_damage *1.18（MULTIPLY_SCALAR_1，值填0.18）
+        // 仅在持有武器时才应用伤害类加成，避免空手过高
+        boolean hasWeapon = isMeleeMainhand(player);
+        if (gladiator >= 2 && hasWeapon) {
             applyPercentModifier(player, Attribute.GENERIC_ATTACK_DAMAGE, 0.18, "relic:gladiator:2pc");
         }
-        if (gladiator >= 4 && isMeleeMainhand(player)) {
-            // 近战普通攻击伤害 +35% -> 近似为攻击力 +35%（演示）
+        if (gladiator >= 4 && hasWeapon) {
             applyPercentModifier(player, Attribute.GENERIC_ATTACK_DAMAGE, 0.35, "relic:gladiator:4pc");
         }
 
@@ -93,7 +93,14 @@ public class RelicEffectService {
             double v = Math.max(0.0, Math.min(1.0, kbRes / 100.0));
             applyAdditiveModifier(player, Attribute.GENERIC_KNOCKBACK_RESISTANCE, v, "relic:stat:KB_RES");
         }
-        plugin.getLogger().info("[Relic] " + player.getName() + " 套装统计: " + count + ", 词条合计=" + statSum);
+        // 调试日志受配置控制
+        try {
+            boolean debug = plugin.getConfig().getBoolean("settings.debug", false);
+            boolean verbose = plugin.getConfig().getBoolean("relic.debug_effects", false);
+            if (debug || verbose) {
+                plugin.getLogger().info("[Relic] " + player.getName() + " 套装统计: " + count + ", 词条合计=" + statSum);
+            }
+        } catch (Throwable ignore) {}
     }
 
     public void clear(Player player) {

@@ -4,6 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -27,7 +28,9 @@ public class RelicMainMenuGUI {
     }
     
     public void open(Player player) {
-        Inventory inv = Bukkit.createInventory(null, 45, TITLE);
+        Holder holder = new Holder();
+        Inventory inv = Bukkit.createInventory(holder, 45, TITLE);
+        holder.setInventory(inv);
         
         // 设置边框
         ItemStack border = createItem(Material.GRAY_STAINED_GLASS_PANE, "§7", null);
@@ -65,4 +68,11 @@ public class RelicMainMenuGUI {
     
     public static int getEquipSlot() { return EQUIP_SLOT; }
     public static int getWarehouseSlot() { return WAREHOUSE_SLOT; }
+
+    public static class Holder implements InventoryHolder {
+        private Inventory inventory;
+        @Override
+        public Inventory getInventory() { return inventory; }
+        public void setInventory(Inventory inventory) { this.inventory = inventory; }
+    }
 }
