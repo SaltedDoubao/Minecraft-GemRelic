@@ -5,6 +5,8 @@
 settings:
   # 是否启用调试模式
   debug: false
+  # 是否打印圣遗物效果统计的详细日志（优先于 settings.debug）
+  relic.debug_effects: false
   
   # 默认语言
   language: zh_CN
