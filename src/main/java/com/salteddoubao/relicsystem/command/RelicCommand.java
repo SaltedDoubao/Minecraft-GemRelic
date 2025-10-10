@@ -160,7 +160,7 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
                         List.of(
                             new RelicSubstat(RelicStatType.CRIT_RATE, 7.8),
                             new RelicSubstat(RelicStatType.CRIT_DMG, 14.0),
-                            new RelicSubstat(RelicStatType.ATK_SPEED, 4.2)
+                            new RelicSubstat(RelicStatType.MOVE_SPEED, 4.2)
                         ),
                         false
                     );

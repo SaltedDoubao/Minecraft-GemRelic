@@ -40,10 +40,6 @@ public class CombatListener implements Listener {
         double atkPct = stats.getOrDefault(RelicStatType.ATK_PCT, 0.0) / 100.0;
         if (atkPct != 0) damage *= (1.0 + atkPct);
 
-        // 元素伤害加成（作为通用额外乘区）
-        double elem = stats.getOrDefault(RelicStatType.ELEM_DMG_ANY, 0.0) / 100.0;
-        if (elem != 0) damage *= (1.0 + elem);
-
         // 暴击：按暴击率判定，暴伤系数应用
         double critRate = stats.getOrDefault(RelicStatType.CRIT_RATE, 0.0) / 100.0;
         double critDmg = stats.getOrDefault(RelicStatType.CRIT_DMG, 0.0) / 100.0; // 例如 50% -> 0.5，额外乘区

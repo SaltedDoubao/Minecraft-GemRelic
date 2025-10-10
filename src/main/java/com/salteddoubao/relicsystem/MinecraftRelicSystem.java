@@ -1,6 +1,7 @@
 package com.salteddoubao.relicsystem;
 
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.entity.Player;
 
 import com.salteddoubao.relicsystem.command.RelicCommand;
 import com.salteddoubao.relicsystem.listener.PlayerListener;
@@ -72,6 +73,15 @@ public class MinecraftRelicSystem extends JavaPlugin {
     public void onDisable() {
         getLogger().info("RelicSystem 正在关闭...");
         
+        // 在关闭前清理所有在线玩家的属性（包含原版修饰与 AP 来源），避免残留
+        try {
+            if (relicEffectService != null) {
+                for (Player p : getServer().getOnlinePlayers()) {
+                    try { relicEffectService.clear(p); } catch (Throwable ignore) {}
+                }
+            }
+        } catch (Throwable ignore) {}
+
         // 保存所有在线玩家的圣遗物数据
         if (relicProfileManager != null) {
             relicProfileManager.saveAll();

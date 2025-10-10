@@ -50,14 +50,23 @@ public class RelicEffectService {
         Map<RelicStatType, Double> statSum = plugin.getStatAggregationService().aggregate(profile);
         cachedStats.put(player.getUniqueId(), statSum);
 
-        // 若启用 AttributePlus 集成，则仅通过桥接下发属性，由 AP 处理战斗与面板展示
+        // 若启用 AttributePlus 集成，则优先通过桥接下发属性；失败则回退至内置属性引擎
         if (plugin.getAttributePlusBridge() != null && plugin.getAttributePlusBridge().isEnabled()) {
             try {
-                plugin.getAttributePlusBridge().apply(player, statSum);
+                boolean applied = plugin.getAttributePlusBridge().apply(player, statSum);
+                if (applied) {
+                    // AP 已接管，确保立即刷新一次属性供 /ap stats 面板读取
+                    try {
+                        Class<?> apiClass2 = Class.forName("org.serverct.ersha.api.AttributeAPI");
+                        apiClass2.getMethod("updateAttribute", org.bukkit.entity.LivingEntity.class).invoke(null, player);
+                    } catch (Throwable ignore) {}
+                    return; // AP 成功接管
+                } else {
+                    plugin.getLogger().warning("[Relic] AttributePlus 未能成功下发属性，回退到内置属性应用");
+                }
             } catch (Throwable t) {
-                plugin.getLogger().warning("向 AttributePlus 下发属性时发生异常: " + t.getMessage());
+                plugin.getLogger().warning("向 AttributePlus 下发属性时发生异常，回退内置属性: " + t.getMessage());
             }
-            return;
         }
 
         // 内置属性应用（不依赖任何外部插件）
@@ -78,31 +87,15 @@ public class RelicEffectService {
             }
         } catch (Throwable ignore) {}
 
-        // 攻速（%）
-        Double atkSpeed = statSum.get(RelicStatType.ATK_SPEED);
-        if (atkSpeed != null && atkSpeed != 0) {
-            applyPercentModifier(player, Attribute.GENERIC_ATTACK_SPEED, atkSpeed / 100.0, "relic:stat:ATK_SPEED");
-        }
         // 攻击力（平添）：作为原版攻击力的加法修饰，由伤害事件再叠加百分比与暴击
         Double atkFlat = statSum.get(RelicStatType.ATK_FLAT);
         if (atkFlat != null && atkFlat != 0) {
             applyAdditiveModifier(player, Attribute.GENERIC_ATTACK_DAMAGE, atkFlat, "relic:stat:ATK_FLAT");
         }
-        // 移速（%）
+        // 移速（%）- 若未启用 AP 则回退到原版属性
         Double moveSpeed = statSum.get(RelicStatType.MOVE_SPEED);
         if (moveSpeed != null && moveSpeed != 0) {
             applyPercentModifier(player, Attribute.GENERIC_MOVEMENT_SPEED, moveSpeed / 100.0, "relic:stat:MOVE_SPEED");
-        }
-        // 幸运（+）
-        Double luck = statSum.get(RelicStatType.LUCK);
-        if (luck != null && luck != 0) {
-            applyAdditiveModifier(player, Attribute.GENERIC_LUCK, luck, "relic:stat:LUCK");
-        }
-        // 击退抗性（0-1，来自百分数）
-        Double kbRes = statSum.get(RelicStatType.KB_RES);
-        if (kbRes != null && kbRes != 0) {
-            double v = Math.max(0.0, Math.min(1.0, kbRes / 100.0));
-            applyAdditiveModifier(player, Attribute.GENERIC_KNOCKBACK_RESISTANCE, v, "relic:stat:KB_RES");
         }
         // 调试日志受配置控制
         try {

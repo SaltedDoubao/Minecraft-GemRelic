@@ -94,7 +94,7 @@ public class RelicEquipmentGUI {
     
     private List<String> getSetBonusLore(PlayerRelicProfile profile) {
         List<String> lore = new ArrayList<>();
-        lore.add("§7当前套装件数:");
+        lore.add("§7当前套装/属性总览:");
         lore.add("§7");
         
         Map<String, Integer> counts = new java.util.HashMap<>();
@@ -147,6 +147,15 @@ public class RelicEquipmentGUI {
                 }
                 
                 lore.add("§7");
+            }
+        }
+
+        // 追加：当前已装备圣遗物属性合计（关键信息）
+        java.util.Map<com.salteddoubao.relicsystem.relic.RelicStatType, java.lang.Double> total = plugin.getStatAggregationService().aggregate(profile);
+        if (total != null && !total.isEmpty()) {
+            lore.add("§6属性合计:");
+            for (java.util.Map.Entry<com.salteddoubao.relicsystem.relic.RelicStatType, java.lang.Double> e : total.entrySet()) {
+                lore.add("  §7- " + e.getKey().getDisplay() + ": §a" + String.format("%.1f", e.getValue()) + (e.getKey().isPercent() ? "%" : ""));
             }
         }
         

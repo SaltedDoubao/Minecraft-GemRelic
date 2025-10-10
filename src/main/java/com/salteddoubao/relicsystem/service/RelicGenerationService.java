@@ -30,7 +30,10 @@ public class RelicGenerationService {
         RelicMainStat main = rollMainStat(slot, pool, clampedLevel);
         List<RelicSubstat> substats = rollInitialSubstats(main.getType(), pool, rule);
 
-        RelicData data = new RelicData(UUID.randomUUID(), setId, slot, rarity, 0, 0, main, substats, false);
+        // 若关闭套装系统，强制使用自定义套装id
+        boolean setsEnabled = plugin.getConfig().getBoolean("relic.sets.enabled", true);
+        String finalSetId = setsEnabled ? setId : plugin.getConfig().getString("relic.sets.custom_set_id", "custom");
+        RelicData data = new RelicData(UUID.randomUUID(), finalSetId, slot, rarity, 0, 0, main, substats, false);
         if (clampedLevel > 0) levelTo(data, clampedLevel, pool, rule);
         return data;
     }
@@ -80,15 +83,20 @@ public class RelicGenerationService {
         if (!candidates.isEmpty()) {
             type = candidates.get(random.nextInt(candidates.size()));
         } else {
-            // 若该槽位在属性池中未定义主词条，则从全量主词条中兜底选择一个
-            if (!pool.mainStats.isEmpty()) {
-                List<RelicStatType> any = new ArrayList<>();
-                for (String k : pool.mainStats.keySet()) {
-                    try { any.add(RelicStatType.valueOf(k)); } catch (Exception ignore) {}
+            // 强制槽位兜底：即使配置缺失，也保证符合直觉的主词条
+            switch (slot) {
+                case FLOWER -> type = RelicStatType.HP_FLAT;
+                case PLUME -> type = RelicStatType.ATK_FLAT;
+                case SANDS -> {
+                    RelicStatType[] opts = new RelicStatType[]{ RelicStatType.HP_PCT, RelicStatType.ATK_PCT, RelicStatType.DEF_PCT };
+                    type = opts[random.nextInt(opts.length)];
                 }
-                type = any.isEmpty() ? RelicStatType.ATK_PCT : any.get(random.nextInt(any.size()));
-            } else {
-                type = RelicStatType.ATK_PCT;
+                case GOBLET -> type = RelicStatType.FIRE_DAMAGE; // 杯默认给数值型战斗属性（可扩展随机池）
+                case CIRCLET -> {
+                    RelicStatType[] opts = new RelicStatType[]{ RelicStatType.CRIT_RATE, RelicStatType.CRIT_DMG, RelicStatType.HEAL_BONUS };
+                    type = opts[random.nextInt(opts.length)];
+                }
+                default -> type = RelicStatType.ATK_PCT;
             }
         }
 
