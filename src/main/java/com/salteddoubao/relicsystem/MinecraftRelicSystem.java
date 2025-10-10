@@ -12,6 +12,7 @@ import com.salteddoubao.relicsystem.manager.TreasureBoxManager;
 import com.salteddoubao.relicsystem.service.RelicEffectService;
 import com.salteddoubao.relicsystem.service.RelicGenerationService;
 import com.salteddoubao.relicsystem.service.StatAggregationService;
+import com.salteddoubao.relicsystem.service.AttributePlusBridge;
 import com.salteddoubao.relicsystem.storage.IRelicProfileManager;
 import com.salteddoubao.relicsystem.storage.StorageFactory;
 import com.salteddoubao.relicsystem.util.RelicItemConverter;
@@ -34,6 +35,7 @@ public class MinecraftRelicSystem extends JavaPlugin {
     private RelicItemConverter relicItemConverter;
     private RelicGenerationService relicGenerationService;
     private TreasureBoxManager treasureBoxManager;
+    private AttributePlusBridge attributePlusBridge;
 
     @Override
     public void onEnable() {
@@ -99,6 +101,13 @@ public class MinecraftRelicSystem extends JavaPlugin {
         statAggregationService = new StatAggregationService();
         relicGenerationService = new RelicGenerationService(this);
         treasureBoxManager = new TreasureBoxManager(this);
+        // 初始化 AttributePlus 桥接
+        attributePlusBridge = new AttributePlusBridge(this);
+        if (attributePlusBridge.isEnabled()) {
+            getLogger().info("AttributePlus 集成已启用，命名空间=" + getConfig().getString("integration.attributeplus.namespace", "GemRelic"));
+        } else {
+            getLogger().info("AttributePlus 集成未启用或未安装，将使用内置属性与战斗计算");
+        }
         
         getLogger().info("管理器初始化完成！");
     }
@@ -124,7 +133,12 @@ public class MinecraftRelicSystem extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
         getServer().getPluginManager().registerEvents(new RelicGUIListener(this), this);
         getServer().getPluginManager().registerEvents(new TreasureBoxListener(this), this);
-        getServer().getPluginManager().registerEvents(new CombatListener(this), this);
+        // 若启用 AP 集成，则禁用内置战斗监听器
+        if (attributePlusBridge == null || !attributePlusBridge.isEnabled()) {
+            getServer().getPluginManager().registerEvents(new CombatListener(this), this);
+        } else {
+            getLogger().info("已检测到 AttributePlus，跳过注册 CombatListener，战斗属性由 AP 处理");
+        }
         getLogger().info("事件监听器注册完成！");
     }
 
@@ -146,6 +160,7 @@ public class MinecraftRelicSystem extends JavaPlugin {
     public RelicItemConverter getRelicItemConverter() { return relicItemConverter; }
     public RelicGenerationService getRelicGenerationService() { return relicGenerationService; }
     public TreasureBoxManager getTreasureBoxManager() { return treasureBoxManager; }
+    public AttributePlusBridge getAttributePlusBridge() { return attributePlusBridge; }
 
     // 仅重载圣遗物配置
     public void reloadRelicConfig() {

@@ -70,19 +70,26 @@ public class RelicGenerationService {
 
     private RelicMainStat rollMainStat(RelicSlot slot, RelicManager.AttributePoolConfig pool, int level) {
         RelicStatType type;
-        if (slot == RelicSlot.FLOWER) {
-            type = RelicStatType.HP_FLAT;
-        } else if (slot == RelicSlot.PLUME) {
-            type = RelicStatType.ATK_FLAT;
+        List<RelicStatType> candidates = new ArrayList<>();
+        for (Map.Entry<String, RelicManager.AttributePoolConfig.MainEntry> e : pool.mainStats.entrySet()) {
+            try {
+                RelicStatType t = RelicStatType.valueOf(e.getKey());
+                if (e.getValue().slots.contains(slot.name())) candidates.add(t);
+            } catch (Exception ignore) {}
+        }
+        if (!candidates.isEmpty()) {
+            type = candidates.get(random.nextInt(candidates.size()));
         } else {
-            List<RelicStatType> candidates = new ArrayList<>();
-            for (Map.Entry<String, RelicManager.AttributePoolConfig.MainEntry> e : pool.mainStats.entrySet()) {
-                try {
-                    RelicStatType t = RelicStatType.valueOf(e.getKey());
-                    if (e.getValue().slots.contains(slot.name())) candidates.add(t);
-                } catch (Exception ignore) {}
+            // 若该槽位在属性池中未定义主词条，则从全量主词条中兜底选择一个
+            if (!pool.mainStats.isEmpty()) {
+                List<RelicStatType> any = new ArrayList<>();
+                for (String k : pool.mainStats.keySet()) {
+                    try { any.add(RelicStatType.valueOf(k)); } catch (Exception ignore) {}
+                }
+                type = any.isEmpty() ? RelicStatType.ATK_PCT : any.get(random.nextInt(any.size()));
+            } else {
+                type = RelicStatType.ATK_PCT;
             }
-            if (candidates.isEmpty()) type = RelicStatType.ATK_PCT; else type = candidates.get(random.nextInt(candidates.size()));
         }
 
         double base = getMainBaseValue(type.name(), pool);

@@ -49,6 +49,17 @@ public class RelicEffectService {
         // 聚合词条
         Map<RelicStatType, Double> statSum = plugin.getStatAggregationService().aggregate(profile);
         cachedStats.put(player.getUniqueId(), statSum);
+
+        // 若启用 AttributePlus 集成，则仅通过桥接下发属性，由 AP 处理战斗与面板展示
+        if (plugin.getAttributePlusBridge() != null && plugin.getAttributePlusBridge().isEnabled()) {
+            try {
+                plugin.getAttributePlusBridge().apply(player, statSum);
+            } catch (Throwable t) {
+                plugin.getLogger().warning("向 AttributePlus 下发属性时发生异常: " + t.getMessage());
+            }
+            return;
+        }
+
         // 内置属性应用（不依赖任何外部插件）
         // 生命（最大生命值）：平添与百分比
         Double hpFlat = statSum.get(RelicStatType.HP_FLAT);
@@ -112,6 +123,14 @@ public class RelicEffectService {
             AttributeInstance inst = player.getAttribute(a.attribute);
             if (inst != null && a.modifier != null) {
                 try { inst.removeModifier(a.modifier); } catch (Exception ignored) {}
+            }
+        }
+        // 若启用 AP 集成，清理 AP 侧属性交付
+        if (plugin.getAttributePlusBridge() != null && plugin.getAttributePlusBridge().isEnabled()) {
+            try {
+                plugin.getAttributePlusBridge().clear(player);
+            } catch (Throwable t) {
+                plugin.getLogger().warning("清理 AttributePlus 属性时发生异常: " + t.getMessage());
             }
         }
     }

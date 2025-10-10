@@ -151,6 +151,24 @@ public class RelicManager {
 
             this.attributePool = pool;
             plugin.getLogger().info("RelicManager: 属性池加载完成 (主词条=" + pool.mainStats.size() + ", 副词条=" + pool.subStats.size() + ")");
+            // 若启用 AP 集成，提示未映射的属性键（帮助服主清理不兼容键）
+            try {
+                com.salteddoubao.relicsystem.service.AttributePlusBridge bridge = plugin.getAttributePlusBridge();
+                if (bridge != null && bridge.isEnabled()) {
+                    java.util.Set<String> apKeys = new java.util.HashSet<>();
+                    for (com.salteddoubao.relicsystem.relic.RelicStatType t : com.salteddoubao.relicsystem.relic.RelicStatType.values()) {
+                        // 仅统计在 config.yml 中配置了映射的键
+                        String mapped = plugin.getConfig().getString("integration.attributeplus.stat_map." + t.name());
+                        if (mapped != null) apKeys.add(t.name());
+                    }
+                    java.util.List<String> unknown = new java.util.ArrayList<>();
+                    for (String k : pool.mainStats.keySet()) if (!apKeys.contains(k)) unknown.add(k);
+                    for (String k : pool.subStats.keySet()) if (!apKeys.contains(k)) unknown.add(k);
+                    if (!unknown.isEmpty()) {
+                        plugin.getLogger().warning("检测到属性池中存在未映射至 AP 的属性: " + unknown);
+                    }
+                }
+            } catch (Throwable ignore) {}
         } catch (Exception e) {
             plugin.getLogger().severe("加载属性池失败: " + e.getMessage());
         }

@@ -52,6 +52,10 @@ public class PlayerListener implements Listener {
         // 保存并清理
         // 清理修饰并保存
         plugin.getRelicEffectService().clear(event.getPlayer());
+        // 若启用 AP 集成，额外确保清理 AP 侧属性
+        if (plugin.getAttributePlusBridge() != null && plugin.getAttributePlusBridge().isEnabled()) {
+            try { plugin.getAttributePlusBridge().clear(event.getPlayer()); } catch (Throwable ignored) {}
+        }
         plugin.getRelicProfileManager().clear(event.getPlayer());
         plugin.getLogger().info(event.getPlayer().getName() + " 退出服务器，已保存圣遗物档案");
     }
