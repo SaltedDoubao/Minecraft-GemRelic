@@ -48,11 +48,11 @@ messages:
   no_permission: "§c你没有权限执行此操作！"
   reload_success: "§a配置重载成功！"
 
-# 集成配置（已不再依赖外部属性插件，以下配置将被忽略）
+# 集成配置（推荐与 AttributePlus 深度集成）
 integration:
   attributeplus:
-    enabled: false
-    namespace: mrs
+    enabled: true
+    namespace: RelicSystem
     stat_map:
       CRIT_RATE: crit_chance
       CRIT_DMG: crit_damage
@@ -63,7 +63,7 @@ integration:
     operation:
       default: add
     command_mode:
-      enabled: false
+      enabled: true
       apply_each:
         - "ap set %player% %namespace%:%key% %value%"
       clear_all:

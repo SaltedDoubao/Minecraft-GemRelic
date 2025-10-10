@@ -6,6 +6,9 @@ prefix: MRS
 authors: [ SaltedDoubao ]
 description: 圣遗物属性系统插件
 
+softdepend:
+  - AttributePlus
+
 commands:
   relic:
     description: 圣遗物系统主命令

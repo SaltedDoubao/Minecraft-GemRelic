@@ -1,30 +1,6 @@
-# 属性池配置（模板数值，可依据实际服平衡自行调整）
+# 属性池配置（AP 兼容精简版）
 main_stats:
-  # 生之花主词条固定：生命值（非百分比）
-  HP_FLAT:
-    slots: [FLOWER]
-    base: 10
-    step: 4
-
-  # 死之羽主词条固定：攻击力（非百分比）
-  ATK_FLAT:
-    slots: [PLUME]
-    base: 10
-    step: 2
-
-  # 百分比类主词条（理之冠、空之杯、时之沙可出现）
-  ATK_PCT:
-    slots: [SANDS, GOBLET, CIRCLET]
-    base: 6.0
-    step: 1.35
-  DEF_PCT:
-    slots: [SANDS, GOBLET, CIRCLET]
-    base: 7.0
-    step: 1.3
-  HP_PCT:
-    slots: [SANDS, GOBLET, CIRCLET]
-    base: 6.0
-    step: 1.35
+  # 仅保留与 AP 对应的主词条（默认为理之冠出现）
   CRIT_RATE:
     slots: [CIRCLET]
     base: 4.5
@@ -33,34 +9,15 @@ main_stats:
     slots: [CIRCLET]
     base: 9.0
     step: 1.7
-  ELEM_DMG_ANY:
-    slots: [GOBLET]
-    base: 6.0
-    step: 1.35
 
 sub_stats:
-  # 副词条支持所有部位，不限制 slots
+  # 仅保留 AP 可映射的副词条
   CRIT_RATE:
     weight: 2
     pool: [2.7, 3.1, 3.5, 3.9]
   CRIT_DMG:
     weight: 2
     pool: [5.4, 6.2, 7.0, 7.8]
-  ATK_PCT:
-    weight: 10
-    pool: [4.1, 4.7, 5.3, 5.8]
-  ATK_FLAT:
-    weight: 20
-    pool: [14, 16, 18, 19]
-  DEF_PCT:
-    weight: 16
-    pool: [4.1, 4.7, 5.3, 5.8]
-  HP_PCT:
-    weight: 12
-    pool: [4.1, 4.7, 5.3, 5.8]
-  HP_FLAT:
-    weight: 20
-    pool: [6, 8, 10, 12]
   ATK_SPEED:
     weight: 12
     pool: [2.1, 2.5, 2.9, 3.3]
