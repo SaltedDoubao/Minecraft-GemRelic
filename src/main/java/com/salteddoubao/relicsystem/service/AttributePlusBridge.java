@@ -29,7 +29,7 @@ public class AttributePlusBridge {
         this.plugin = plugin;
         boolean installed = Bukkit.getPluginManager().getPlugin("AttributePlus") != null;
         this.enabled = plugin.getConfig().getBoolean("integration.attributeplus.enabled", false) && installed;
-        this.namespace = plugin.getConfig().getString("integration.attributeplus.namespace", "GemRelic");
+        this.namespace = plugin.getConfig().getString("integration.attributeplus.namespace", "RelicSystem");
         for (RelicStatType t : RelicStatType.values()) {
             String key = plugin.getConfig().getString("integration.attributeplus.stat_map." + t.name());
             if (key != null) map.put(t, key);

@@ -104,7 +104,7 @@ public class MinecraftRelicSystem extends JavaPlugin {
         // 初始化 AttributePlus 桥接
         attributePlusBridge = new AttributePlusBridge(this);
         if (attributePlusBridge.isEnabled()) {
-            getLogger().info("AttributePlus 集成已启用，命名空间=" + getConfig().getString("integration.attributeplus.namespace", "GemRelic"));
+            getLogger().info("AttributePlus 集成已启用，命名空间=" + getConfig().getString("integration.attributeplus.namespace", "RelicSystem"));
         } else {
             getLogger().info("AttributePlus 集成未启用或未安装，将使用内置属性与战斗计算");
         }
