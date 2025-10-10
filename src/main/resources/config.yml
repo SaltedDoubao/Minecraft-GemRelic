@@ -15,6 +15,11 @@ settings:
 relic:
   # 是否启用圣遗物系统
   enabled: true
+  # 是否启用“套装”系统（关闭后将以自定义套装id生成，不校验 sets.yml）
+  sets:
+    enabled: true
+    custom_set_id: custom
+    custom_set_name: 自定义圣遗物
   
   # 属性计算方式：additive（加法）或 multiplicative（乘法）
   calculation_mode: additive
@@ -53,13 +58,70 @@ integration:
   attributeplus:
     enabled: true
     namespace: RelicSystem
+    # 使用 AP 原生 API 对接（true）或回退为命令模板（false）
+    api_mode: true
+    # 百分比缩放：1.0 表示 15 => 15（AP会自动处理为%），0.01 表示 15 => 0.15
+    percent_scale: 1.0
     stat_map:
-      CRIT_RATE: crit_chance
-      CRIT_DMG: crit_damage
-      ATK_SPEED: attack_speed
-      MOVE_SPEED: move_speed
-      LUCK: luck
-      KB_RES: knockback_resistance
+      HP_FLAT: health
+      ATK_FLAT: attack
+      HP_PCT: health
+      ATK_PCT: attack
+      DEF_PCT: armor
+      CRIT_RATE: crit
+      CRIT_DMG: crit_rate
+      MOVE_SPEED: moving
+      HEAL_BONUS: restore_ratio
+      # 元素/万能伤害改为具体战斗属性
+      FIRE_CHANCE: fire
+      FIRE_DAMAGE: fire_damage
+      VAMPIRE_CHANCE: vampire
+      VAMPIRE_RATE: vampire_rate
+      HIT: hit
+      FROZEN_CHANCE: frozen
+      FROZEN_INTENSITY: frozen_intensity
+      LIGHTNING_CHANCE: lightning
+      LIGHTNING_DAMAGE: lightning_damage
+      SUNDER_ARMOR: sunder_armor
+      SEE_THROUGH: see_through
+      BREAK_SHIELD: break_shield
+      ARMOR: armor
+      DEFENSE: defense
+      PVP_DEFENSE: pvp_defense
+      PVE_DEFENSE: pve_defense
+      CRIT_RESIST: crit_resist
+      VAMPIRE_RESIST: vampire_resist
+      REFLECTION_CHANCE: reflection
+      REFLECTION_RATE: reflection_rate
+      DODGE_CHANCE: dodge
+      SHIELD_BLOCK_CHANCE: shield_block
+      REMOTE_IMMUNE: remote_immune
+    # 显式指定作为百分比处理的键（其余使用 _PCT 后缀类型自动识别）
+    percentage_keys:
+      - crit
+      - crit_rate
+      - vampire_rate
+      - moving
+      - restore_ratio
+      - fire
+      - vampire
+      - hit
+      - frozen
+      - frozen_intensity
+      - lightning
+      - sunder_armor
+      - see_through
+      - break_shield
+      - armor
+      - crit_resist
+      - vampire_resist
+      - reflection
+      - reflection_rate
+      - dodge
+      - shield_block
+      - remote_immune
+      - pve_attack
+      - pvp_attack
     operation:
       default: add
     command_mode:
