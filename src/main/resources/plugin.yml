@@ -7,7 +7,7 @@ authors: [ SaltedDoubao ]
 description: 圣遗物属性系统插件
 
 softdepend:
-  - AttributePlus
+  - AttributePlus  # 可选依赖，提供增强属性支持
 
 commands:
   relic:
@@ -22,6 +22,3 @@ permissions:
   mrs.user:
     description: 允许使用relic基础命令
     default: true
-
-# 已移除对 AttributePlus 的软依赖，插件独立运行
-

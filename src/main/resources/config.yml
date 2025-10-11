@@ -15,6 +15,8 @@ settings:
 relic:
   # 是否启用圣遗物系统
   enabled: true
+  # 圣遗物最大等级（防止输入过大数字导致性能问题）
+  max_level: 20
   # 是否启用“套装”系统（关闭后将以自定义套装id生成，不校验 sets.yml）
   sets:
     enabled: true
@@ -64,6 +66,49 @@ integration:
     # 注意：AP的tempPercentage可能期望0-1的小数，而不是0-100的整数
     # 如果属性显示异常，请尝试修改此值（推荐先尝试 0.01）
     percent_scale: 1.0
+    
+    # 属性名称映射（占位符 -> 中文服务器键）
+    # 如果不配置此项，将使用默认映射
+    # 默认映射适用于大部分 AttributePlus 配置
+    # 仅当你的 AP 配置使用了自定义属性名称时才需要修改
+    name_mapping:
+      health: "生命力"
+      attack: "物理伤害"
+      defense: "物理防御"
+      pvp_attack: "PVP伤害"
+      pve_attack: "PVE伤害"
+      pvp_defense: "PVP防御"
+      pve_defense: "PVE防御"
+      real_attack: "真实伤害"
+      crit: "暴击几率"
+      crit_rate: "暴伤倍率"
+      vampire: "吸血几率"
+      vampire_rate: "吸血倍率"
+      shoot_speed: "箭矢速度"
+      shoot_spread: "箭术精准"
+      shoot_through: "箭矢穿透率"
+      fire: "燃烧几率"
+      fire_damage: "燃烧伤害"
+      frozen: "冰冻几率"
+      frozen_intensity: "冰冻强度"
+      lightning: "雷击几率"
+      lightning_damage: "雷击伤害"
+      hit: "命中几率"
+      sunder_armor: "破甲几率"
+      see_through: "护甲穿透"
+      break_shield: "破盾几率"
+      armor: "护甲值"
+      crit_resist: "暴击抵抗"
+      vampire_resist: "吸血抵抗"
+      reflection: "反弹几率"
+      reflection_rate: "反弹倍率"
+      dodge: "闪避几率"
+      shield_block: "盾牌格挡率"
+      remote_immune: "箭伤免疫率"
+      moving: "移速加成"
+      restore: "生命恢复"
+      restore_ratio: "百分比恢复"
+    
     stat_map:
       # 基础属性（严格对应 AP）
       HP_FLAT: health
