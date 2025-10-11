@@ -18,6 +18,7 @@ import com.salteddoubao.relicsystem.storage.IRelicProfileManager;
 import com.salteddoubao.relicsystem.storage.StorageFactory;
 import com.salteddoubao.relicsystem.util.RelicItemConverter;
 import com.salteddoubao.relicsystem.util.ExceptionHandler;
+import com.salteddoubao.relicsystem.util.ConfigManager;
 
 /**
  * RelicSystem 插件主类
@@ -39,6 +40,7 @@ public class MinecraftRelicSystem extends JavaPlugin {
     private TreasureBoxManager treasureBoxManager;
     private AttributePlusBridge attributePlusBridge;
     private ExceptionHandler exceptionHandler;
+    private ConfigManager configManager;
 
     @Override
     public void onEnable() {
@@ -59,6 +61,9 @@ public class MinecraftRelicSystem extends JavaPlugin {
         // 保存默认配置文件
         saveDefaultConfig();
 
+        // 校验配置文件
+        validateConfig();
+
         // 初始化管理器
         initializeManagers();
 
@@ -75,9 +80,16 @@ public class MinecraftRelicSystem extends JavaPlugin {
     public void onDisable() {
         getLogger().info("RelicSystem 正在关闭...");
         
-        // 在关闭前清理所有在线玩家的属性（包含原版修饰与 AP 来源），避免残留
+        // 1. 先保存所有在线玩家的数据
+        if (relicProfileManager != null) {
+            getLogger().info("正在保存所有玩家数据...");
+            relicProfileManager.saveAll();
+        }
+
+        // 2. 再清理属性修饰（包含原版修饰与 AP 来源），避免残留
         try {
             if (relicEffectService != null) {
+                getLogger().info("正在清理玩家属性...");
                 for (Player p : getServer().getOnlinePlayers()) {
                     try {
                         relicEffectService.clear(p);
@@ -89,17 +101,60 @@ public class MinecraftRelicSystem extends JavaPlugin {
             }
         } catch (Exception e) {
             // AP未启用或清理失败，不影响插件卸载
-            if (getConfig().getBoolean("settings.debug", false)) {
+            if (configManager != null && configManager.isDebugMode()) {
                 getLogger().fine("AP属性清理跳过: " + e.getMessage());
             }
         }
-
-        // 保存所有在线玩家的圣遗物数据
-        if (relicProfileManager != null) {
-            relicProfileManager.saveAll();
-        }
         
         getLogger().info("RelicSystem 已关闭，感谢使用！");
+    }
+
+    /**
+     * 校验配置文件
+     */
+    private void validateConfig() {
+        java.util.List<String> errors = new java.util.ArrayList<>();
+
+        // 检查存储模式
+        String storageMode = getConfig().getString("relic.storage_mode");
+        if (!java.util.Arrays.asList("YAML", "INVENTORY").contains(storageMode)) {
+            errors.add("无效的存储模式: " + storageMode + "，有效值为: YAML, INVENTORY");
+        }
+
+        // 检查最大等级
+        int maxLevel = getConfig().getInt("relic.max_level", 20);
+        if (maxLevel < 0 || maxLevel > 100) {
+            errors.add("无效的最大等级: " + maxLevel + "，建议范围: 0-100");
+        }
+
+        // 检查 AttributePlus 映射
+        if (getConfig().getBoolean("integration.attributeplus.enabled")) {
+            org.bukkit.configuration.ConfigurationSection statMap = getConfig().getConfigurationSection("integration.attributeplus.stat_map");
+            if (statMap == null || statMap.getKeys(false).isEmpty()) {
+                errors.add("AttributePlus 已启用但未配置 stat_map");
+            }
+        }
+
+        // 检查属性池文件
+        java.io.File poolFile = new java.io.File(getDataFolder(), "relics/attribute_pool.yml");
+        if (!poolFile.exists()) {
+            errors.add("属性池文件不存在: " + poolFile.getPath());
+        }
+
+        // 检查套装文件
+        java.io.File setsFile = new java.io.File(getDataFolder(), "relics/sets.yml");
+        if (!setsFile.exists()) {
+            errors.add("套装文件不存在: " + setsFile.getPath());
+        }
+
+        // 输出错误信息
+        if (!errors.isEmpty()) {
+            getLogger().severe("==============================");
+            getLogger().severe("配置文件存在错误：");
+            errors.forEach(e -> getLogger().severe("  - " + e));
+            getLogger().severe("插件可能无法正常工作，请检查配置！");
+            getLogger().severe("==============================");
+        }
     }
 
     /**
@@ -110,6 +165,7 @@ public class MinecraftRelicSystem extends JavaPlugin {
         
         // 初始化基础工具
         exceptionHandler = new ExceptionHandler(this);
+        configManager = new ConfigManager(this);
         relicItemConverter = new RelicItemConverter(this);
 
         // 初始化存储系统
@@ -185,13 +241,17 @@ public class MinecraftRelicSystem extends JavaPlugin {
     public TreasureBoxManager getTreasureBoxManager() { return treasureBoxManager; }
     public AttributePlusBridge getAttributePlusBridge() { return attributePlusBridge; }
     public ExceptionHandler getExceptionHandler() { return exceptionHandler; }
+    public ConfigManager getConfigManager() { return configManager; }
 
     // 仅重载圣遗物配置
     public void reloadRelicConfig() {
+        // 重载配置缓存
+        if (configManager != null) {
+            configManager.reload();
+        }
         relicManager = new RelicManager(this);
         // 重载后可能需要更新存储系统
         if (storageFactory != null) {
-            StorageFactory.StorageMode newMode = storageFactory.getStorageMode();
             getLogger().info("配置重载后的存储模式: " + storageFactory.getStorageModeDisplayName());
         }
     }
