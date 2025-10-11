@@ -58,15 +58,21 @@ public class RelicProfileManager implements IRelicProfileManager {
         
         // 加载仓库中的圣遗物
         if (cfg.isList("warehouse")) {
-            List<Map<String, Object>> warehouseList = (List<Map<String, Object>>) cfg.getList("warehouse");
-            for (Map<String, Object> itemMap : warehouseList) {
-                // 转换为ConfigurationSection进行反序列化
-                org.bukkit.configuration.MemoryConfiguration temp = new org.bukkit.configuration.MemoryConfiguration();
-                for (Map.Entry<String, Object> entry : itemMap.entrySet()) {
-                    temp.set(entry.getKey(), entry.getValue());
+            List<?> rawList = cfg.getList("warehouse");
+            if (rawList != null) {
+                for (Object obj : rawList) {
+                    if (obj instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> itemMap = (Map<String, Object>) obj;
+                        // 转换为ConfigurationSection进行反序列化
+                        org.bukkit.configuration.MemoryConfiguration temp = new org.bukkit.configuration.MemoryConfiguration();
+                        for (Map.Entry<String, Object> entry : itemMap.entrySet()) {
+                            temp.set(entry.getKey(), entry.getValue());
+                        }
+                        RelicData data = RelicIO.deserializeRelic(temp);
+                        if (data != null) profile.addToWarehouse(data);
+                    }
                 }
-                RelicData data = RelicIO.deserializeRelic(temp);
-                if (data != null) profile.addToWarehouse(data);
             }
         }
     }

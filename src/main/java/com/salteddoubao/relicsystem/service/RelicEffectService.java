@@ -155,10 +155,14 @@ public class RelicEffectService {
     }
 
     private boolean isMeleeMainhand(Player player) {
-        ItemStack m = player.getInventory().getItemInMainHand();
-        if (m == null) return false;
-        String n = m.getType().name();
-        return n.endsWith("_SWORD") || n.endsWith("_AXE") || n.equals("TRIDENT");
+        ItemStack item = player.getInventory().getItemInMainHand();
+        if (item == null || item.getType() == org.bukkit.Material.AIR) {
+            return false;
+        }
+        org.bukkit.Material type = item.getType();
+        return type.name().endsWith("_SWORD") 
+            || type.name().endsWith("_AXE") 
+            || type == org.bukkit.Material.TRIDENT;
     }
 
     private void removeExisting(AttributeInstance inst, UUID uuid, String key) {

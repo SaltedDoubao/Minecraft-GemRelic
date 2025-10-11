@@ -41,8 +41,8 @@ public class CombatListener implements Listener {
         if (atkPct != 0) damage *= (1.0 + atkPct);
 
         // 暴击：按暴击率判定，暴伤系数应用
-        double critRate = stats.getOrDefault(RelicStatType.CRIT_RATE, 0.0) / 100.0;
-        double critDmg = stats.getOrDefault(RelicStatType.CRIT_DMG, 0.0) / 100.0; // 例如 50% -> 0.5，额外乘区
+        double critRate = stats.getOrDefault(RelicStatType.CRIT_CHANCE, 0.0) / 100.0;
+        double critDmg = stats.getOrDefault(RelicStatType.CRIT_RATE, 0.0) / 100.0; // 例如 50% -> 0.5，额外乘区
         if (critRate > 0) {
             double roll = ThreadLocalRandom.current().nextDouble();
             if (roll < Math.max(0, Math.min(1, critRate))) {
@@ -69,10 +69,14 @@ public class CombatListener implements Listener {
     }
 
     private boolean isMeleeMainhand(Player player) {
-        org.bukkit.inventory.ItemStack m = player.getInventory().getItemInMainHand();
-        if (m == null) return false;
-        String n = m.getType().name();
-        return n.endsWith("_SWORD") || n.endsWith("_AXE") || n.equals("TRIDENT");
+        org.bukkit.inventory.ItemStack item = player.getInventory().getItemInMainHand();
+        if (item == null || item.getType() == org.bukkit.Material.AIR) {
+            return false;
+        }
+        org.bukkit.Material type = item.getType();
+        return type.name().endsWith("_SWORD") 
+            || type.name().endsWith("_AXE") 
+            || type == org.bukkit.Material.TRIDENT;
     }
 }
 

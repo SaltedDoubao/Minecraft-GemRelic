@@ -91,9 +91,9 @@ public class RelicGenerationService {
                     RelicStatType[] opts = new RelicStatType[]{ RelicStatType.HP_PCT, RelicStatType.ATK_PCT, RelicStatType.DEF_PCT };
                     type = opts[random.nextInt(opts.length)];
                 }
-                case GOBLET -> type = RelicStatType.FIRE_DAMAGE; // 杯默认给数值型战斗属性（可扩展随机池）
+                case GOBLET -> type = RelicStatType.PVE_ATK; // 杯默认 PVE伤害
                 case CIRCLET -> {
-                    RelicStatType[] opts = new RelicStatType[]{ RelicStatType.CRIT_RATE, RelicStatType.CRIT_DMG, RelicStatType.HEAL_BONUS };
+                    RelicStatType[] opts = new RelicStatType[]{ RelicStatType.CRIT_CHANCE, RelicStatType.CRIT_RATE, RelicStatType.ARMOR, RelicStatType.RESTORE_RATIO };
                     type = opts[random.nextInt(opts.length)];
                 }
                 default -> type = RelicStatType.ATK_PCT;

@@ -73,11 +73,11 @@ public class AttributePlusBridge {
             String apKey = map.get(type);
             if (apKey == null || apKey.isEmpty()) continue;
             
-            // 转换为服务器属性名（中文），否则用原占位键
-            String serverKey = resolveServerKey(apiClassForKey, apKey);
+            // 必须使用中文服务器键（AP 的 attributeNameList 使用中文键索引）
+            String serverKey = resolveServerKey(null, apKey);
             boolean pctByType = false;
             try { pctByType = type.name().endsWith("_PCT"); } catch (Throwable ignore) {}
-            boolean pctByKey = (percentageKeys != null && (percentageKeys.contains(apKey) || percentageKeys.contains(serverKey)));
+            boolean pctByKey = (percentageKeys != null && percentageKeys.contains(apKey));
             boolean asPercent = pctByType || pctByKey;
 
             if (asPercent) {
@@ -96,8 +96,13 @@ public class AttributePlusBridge {
             return true;
         }
 
-        if (debug) {
-            plugin.getLogger().info("[AP] 下发 " + player.getName() + " => value=" + valueMap + ", pct=" + pctMap);
+        // 输出详细的下发内容（包含展开的 Number[] 数组）
+        plugin.getLogger().info("[AP] 准备下发 " + player.getName());
+        for (Map.Entry<String, Number[]> e : valueMap.entrySet()) {
+            plugin.getLogger().info("  valueMap[" + e.getKey() + "] = [" + e.getValue()[0] + ", " + e.getValue()[1] + "]");
+        }
+        for (Map.Entry<String, Double> e : pctMap.entrySet()) {
+            plugin.getLogger().info("  pctMap[" + e.getKey() + "] = " + e.getValue());
         }
 
         // 优先 API 模式
@@ -114,6 +119,8 @@ public class AttributePlusBridge {
                 Class<?> attributeSourceClass = Class.forName("org.serverct.ersha.attribute.data.AttributeSource");
                 apiClass.getMethod("addSourceAttribute", attributeDataClass, String.class, attributeSourceClass)
                         .invoke(null, attributeData, namespace, attributeSource);
+                
+                plugin.getLogger().info("[AP] addSourceAttribute 调用成功");
 
                 // 记录一次已应用键集合（用于命令模式清理时的参考）
                 HashMap<String, Double> appliedJoin = new HashMap<>();

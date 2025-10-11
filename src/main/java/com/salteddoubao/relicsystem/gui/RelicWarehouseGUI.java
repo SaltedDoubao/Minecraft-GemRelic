@@ -1,5 +1,8 @@
 package com.salteddoubao.relicsystem.gui;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -65,7 +68,7 @@ public class RelicWarehouseGUI {
         title += " | §e排序: " + sortMode.getDisplay();
         
         Holder holder = new Holder();
-        Inventory inv = Bukkit.createInventory(holder, 54, title);
+        Inventory inv = Bukkit.createInventory(holder, 54, Component.text(title));
         holder.setInventory(inv);
         
         // 设置边框
@@ -81,7 +84,7 @@ public class RelicWarehouseGUI {
     }
 
     private void setupBorder(Inventory inv) {
-        ItemStack border = createGuiItem(Material.GRAY_STAINED_GLASS_PANE, "§7", null);
+        ItemStack border = createGuiItem(Material.GRAY_STAINED_GLASS_PANE, Component.text("§7"), null);
         for (int i = 0; i < 54; i++) {
             boolean isBorder = (i < 9 || i >= 45 || i % 9 == 0 || i % 9 == 8);
             boolean isControlSlot = (i == PREV_PAGE_SLOT || i == NEXT_PAGE_SLOT || i == FILTER_SLOT || 
@@ -110,12 +113,12 @@ public class RelicWarehouseGUI {
         
         // 如果仓库为空，显示提示物品
         if (items.isEmpty() && page == 0) {
-            ItemStack hint = createGuiItem(Material.BARRIER, "§c§l仓库为空", 
-                List.of("§7仓库中没有圣遗物", "§7", 
-                       "§e获取圣遗物的方法:", 
-                       "§71. 执行 §e/relic test §7获取测试圣遗物",
-                       "§72. 将圣遗物物品放入背包后使用 §e放入按钮",
-                       "§73. 在背包中 §eShift-点击 §7圣遗物快速放入"));
+            ItemStack hint = createGuiItem(Material.BARRIER, Component.text("§c§l仓库为空"), 
+                List.of(Component.text("§7仓库中没有圣遗物"), Component.text("§7"), 
+                       Component.text("§e获取圣遗物的方法:"), 
+                       Component.text("§71. 执行 §e/relic test §7获取测试圣遗物"),
+                       Component.text("§72. 将圣遗物物品放入背包后使用 §e放入按钮"),
+                       Component.text("§73. 在背包中 §eShift-点击 §7圣遗物快速放入")));
             inv.setItem(WAREHOUSE_SLOTS[10], hint); // 中央位置显示提示
             return;
         }
@@ -135,34 +138,34 @@ public class RelicWarehouseGUI {
     private void setupControls(Inventory inv, RelicSlot filterSlot, int page, PlayerRelicProfile profile, SortMode sortMode) {
         // 上一页按钮
         if (page > 0) {
-            inv.setItem(PREV_PAGE_SLOT, createGuiItem(Material.ARROW, "§a上一页", 
-                List.of("§7点击查看上一页")));
+            inv.setItem(PREV_PAGE_SLOT, createGuiItem(Material.ARROW, Component.text("§a上一页"), 
+                List.of(Component.text("§7点击查看上一页"))));
         }
         
         // 下一页按钮
         List<RelicData> items = filterSlot != null ? profile.getWarehouseBySlot(filterSlot) : profile.getWarehouse();
         int maxPage = Math.max(0, (items.size() - 1) / WAREHOUSE_SLOTS.length);
         if (page < maxPage) {
-            inv.setItem(NEXT_PAGE_SLOT, createGuiItem(Material.ARROW, "§a下一页", 
-                List.of("§7点击查看下一页")));
+            inv.setItem(NEXT_PAGE_SLOT, createGuiItem(Material.ARROW, Component.text("§a下一页"), 
+                List.of(Component.text("§7点击查看下一页"))));
         }
         
         // 筛选按钮
         String filterText = filterSlot != null ? getSlotDisplayName(filterSlot) : "全部";
-        inv.setItem(FILTER_SLOT, createGuiItem(Material.HOPPER, "§e筛选: " + filterText, 
-            List.of("§7点击切换筛选条件", "§7当前筛选: " + filterText)));
+        inv.setItem(FILTER_SLOT, createGuiItem(Material.HOPPER, Component.text("§e筛选: " + filterText), 
+            List.of(Component.text("§7点击切换筛选条件"), Component.text("§7当前筛选: " + filterText))));
 
         // 排序按钮
-        inv.setItem(SORT_SLOT, createGuiItem(Material.COMPARATOR, "§e排序: " + sortMode.getDisplay(),
-            List.of("§7点击切换排序方式", "§7当前排序: " + sortMode.getDisplay())));
+        inv.setItem(SORT_SLOT, createGuiItem(Material.COMPARATOR, Component.text("§e排序: " + sortMode.getDisplay()),
+            List.of(Component.text("§7点击切换排序方式"), Component.text("§7当前排序: " + sortMode.getDisplay()))));
             
         // 返回主菜单按钮
-        inv.setItem(BACK_SLOT, createGuiItem(Material.BARRIER, "§c§l返回主菜单", 
-            List.of("§7点击返回圣遗物系统主菜单")));
+        inv.setItem(BACK_SLOT, createGuiItem(Material.BARRIER, Component.text("§c§l返回主菜单"), 
+            List.of(Component.text("§7点击返回圣遗物系统主菜单"))));
             
         // 从背包放入按钮
-        inv.setItem(PUT_IN_SLOT, createGuiItem(Material.HOPPER, "§6§l放入圣遗物", 
-            List.of("§7将背包中的圣遗物放入仓库", "§7右键点击此按钮执行操作")));
+        inv.setItem(PUT_IN_SLOT, createGuiItem(Material.HOPPER, Component.text("§6§l放入圣遗物"), 
+            List.of(Component.text("§7将背包中的圣遗物放入仓库"), Component.text("§7右键点击此按钮执行操作"))));
     }
 
     // 根据排序模式返回比较器
@@ -197,38 +200,38 @@ public class RelicWarehouseGUI {
         ItemMeta meta = item.getItemMeta();
         
         if (meta != null) {
-            RelicSet set = setRef;
             String setName = setRef != null ? setRef.getName() : relic.getSetId();
-            meta.setDisplayName(getRarityColor(relic.getRarity()) + setName + " - " + getSlotDisplayName(relic.getSlot()));
+            meta.displayName(Component.text(getRarityColor(relic.getRarity()) + setName + " - " + getSlotDisplayName(relic.getSlot()))
+                .decoration(TextDecoration.ITALIC, false));
             
-            List<String> lore = new ArrayList<>();
-            lore.add("§7等级: §f" + relic.getLevel());
-            lore.add("§7稀有度: " + getRarityColor(relic.getRarity()) + relic.getRarity().getStars() + "★");
-            lore.add("§7");
-            lore.add("§6主词条:");
-            lore.add("  " + relic.getMainStat().getType().getDisplay() + ": §a" + 
+            List<Component> lore = new ArrayList<>();
+            lore.add(Component.text("§7等级: §f" + relic.getLevel()));
+            lore.add(Component.text("§7稀有度: " + getRarityColor(relic.getRarity()) + relic.getRarity().getStars() + "★"));
+            lore.add(Component.text("§7"));
+            lore.add(Component.text("§6主词条:"));
+            lore.add(Component.text("  " + relic.getMainStat().getType().getDisplay() + ": §a" + 
                 String.format("%.1f", relic.getMainStat().getValue()) + 
-                (relic.getMainStat().getType().isPercent() ? "%" : ""));
+                (relic.getMainStat().getType().isPercent() ? "%" : "")));
             
             if (!relic.getSubstats().isEmpty()) {
-                lore.add("§7");
-                lore.add("§6副词条:");
+                lore.add(Component.text("§7"));
+                lore.add(Component.text("§6副词条:"));
                 for (RelicSubstat substat : relic.getSubstats()) {
-                    lore.add("  " + substat.getType().getDisplay() + ": §a" + 
+                    lore.add(Component.text("  " + substat.getType().getDisplay() + ": §a" + 
                         String.format("%.1f", substat.getValue()) + 
-                        (substat.getType().isPercent() ? "%" : ""));
+                        (substat.getType().isPercent() ? "%" : "")));
                 }
             }
             
-            lore.add("§7");
+            lore.add(Component.text("§7"));
             if (relic.isLocked()) {
-                lore.add("§c🔒 已锁定");
+                lore.add(Component.text("§c🔒 已锁定"));
             }
-            lore.add("§7");
-            lore.add("§e左键：装备到对应部位");
-            lore.add("§e右键：取出到背包");
+            lore.add(Component.text("§7"));
+            lore.add(Component.text("§e左键：装备到对应部位"));
+            lore.add(Component.text("§e右键：取出到背包"));
             
-            meta.setLore(lore);
+            meta.lore(lore);
             // 非0级展示发光效果
             if (relic.getLevel() > 0) {
                 try {
@@ -248,21 +251,22 @@ public class RelicWarehouseGUI {
         ItemMeta meta = item.getItemMeta();
         
         if (meta != null) {
-            meta.setDisplayName("§7" + getSlotDisplayName(slot) + " §8[空]");
-            meta.setLore(List.of("§7此部位未装备圣遗物", "§e点击从仓库选择"));
+            meta.displayName(Component.text("§7" + getSlotDisplayName(slot) + " §8[空]")
+                .decoration(TextDecoration.ITALIC, false));
+            meta.lore(List.of(Component.text("§7此部位未装备圣遗物"), Component.text("§e点击从仓库选择")));
             item.setItemMeta(meta);
         }
         
         return item;
     }
 
-    private ItemStack createGuiItem(Material material, String name, List<String> lore) {
+    private ItemStack createGuiItem(Material material, Component name, List<Component> lore) {
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(name);
+            meta.displayName(name.decoration(TextDecoration.ITALIC, false));
             if (lore != null) {
-                meta.setLore(lore);
+                meta.lore(lore);
             }
             item.setItemMeta(meta);
         }

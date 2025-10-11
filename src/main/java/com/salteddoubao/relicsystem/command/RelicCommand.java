@@ -158,8 +158,8 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
                         UUID.randomUUID(), "gladiator", testSlot, RelicRarity.GOLD, 20, 0,
                         new RelicMainStat(RelicStatType.ATK_PCT, 46.6),
                         List.of(
-                            new RelicSubstat(RelicStatType.CRIT_RATE, 7.8),
-                            new RelicSubstat(RelicStatType.CRIT_DMG, 14.0),
+                            new RelicSubstat(RelicStatType.CRIT_CHANCE, 7.8),
+                            new RelicSubstat(RelicStatType.CRIT_RATE, 14.0),
                             new RelicSubstat(RelicStatType.MOVE_SPEED, 4.2)
                         ),
                         false

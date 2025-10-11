@@ -1,7 +1,7 @@
 package com.salteddoubao.relicsystem.util;
 
-import java.nio.charset.StandardCharsets;
-
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -24,8 +24,8 @@ public class TreasureBoxItemFactory {
         try { mat = Material.valueOf(material); } catch (Exception e) { mat = Material.CHEST; }
         ItemStack item = new ItemStack(mat, 1);
         ItemMeta meta = item.getItemMeta();
-        if (displayName != null) meta.setDisplayName(displayName);
-        if (lore != null && !lore.isEmpty()) meta.setLore(lore);
+        if (displayName != null) meta.displayName(Component.text(displayName).decoration(TextDecoration.ITALIC, false));
+        if (lore != null && !lore.isEmpty()) meta.lore(lore.stream().map(Component::text).toList());
         if (cmd != null) meta.setCustomModelData(cmd);
         if (glow) {
             try {

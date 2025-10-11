@@ -1,5 +1,6 @@
 package com.salteddoubao.relicsystem.listener;
 
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -29,7 +30,7 @@ public class RelicGUIListener implements Listener {
     public void onClick(InventoryClickEvent e) {
         if (!(e.getWhoClicked() instanceof Player)) return;
         Player player = (Player) e.getWhoClicked();
-        String title = e.getView().getTitle();
+        String title = PlainTextComponentSerializer.plainText().serialize(e.getView().title());
         boolean topIsRelicGui = e.getView().getTopInventory() != null && e.getView().getTopInventory().getHolder() instanceof RelicMainMenuGUI.Holder
                 || e.getView().getTopInventory() != null && e.getView().getTopInventory().getHolder() instanceof RelicEquipmentGUI.Holder
                 || e.getView().getTopInventory() != null && e.getView().getTopInventory().getHolder() instanceof RelicWarehouseGUI.Holder;

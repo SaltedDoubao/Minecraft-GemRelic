@@ -1,5 +1,7 @@
 package com.salteddoubao.relicsystem.gui;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -38,7 +40,7 @@ public class RelicEquipmentGUI {
     public void open(Player player) {
         PlayerRelicProfile profile = plugin.getRelicProfileManager().get(player);
         Holder holder = new Holder();
-        Inventory inv = Bukkit.createInventory(holder, 45, TITLE);
+        Inventory inv = Bukkit.createInventory(holder, 45, Component.text(TITLE));
         holder.setInventory(inv);
         
         // 设置边框
@@ -48,8 +50,8 @@ public class RelicEquipmentGUI {
         setupEquippedSlots(inv, profile);
         
         // 返回按钮
-        inv.setItem(BACK_SLOT, createItem(Material.BARRIER, "§c§l返回主菜单", 
-            List.of("§7点击返回圣遗物系统主菜单")));
+        inv.setItem(BACK_SLOT, createItem(Material.BARRIER, Component.text("§c§l返回主菜单"), 
+            List.of(Component.text("§7点击返回圣遗物系统主菜单"))));
             
         // 套装统计显示
         setupSetBonusInfo(inv, profile);
@@ -58,7 +60,7 @@ public class RelicEquipmentGUI {
     }
     
     private void setupBorder(Inventory inv) {
-        ItemStack border = createItem(Material.GRAY_STAINED_GLASS_PANE, "§7", null);
+        ItemStack border = createItem(Material.GRAY_STAINED_GLASS_PANE, Component.text("§7"), null);
         for (int i = 0; i < 45; i++) {
             if (i < 9 || i >= 36 || i % 9 == 0 || i % 9 == 8) {
                 if (i != BACK_SLOT) {  // 避免覆盖返回按钮
@@ -88,14 +90,14 @@ public class RelicEquipmentGUI {
     
     private void setupSetBonusInfo(Inventory inv, PlayerRelicProfile profile) {
         // 在右侧显示套装加成信息
-        ItemStack info = createItem(Material.BOOK, "§6§l套装加成", getSetBonusLore(profile));
+        ItemStack info = createItem(Material.BOOK, Component.text("§6§l套装加成"), getSetBonusLore(profile));
         inv.setItem(16, info);
     }
     
-    private List<String> getSetBonusLore(PlayerRelicProfile profile) {
-        List<String> lore = new ArrayList<>();
-        lore.add("§7当前套装/属性总览:");
-        lore.add("§7");
+    private List<Component> getSetBonusLore(PlayerRelicProfile profile) {
+        List<Component> lore = new ArrayList<>();
+        lore.add(Component.text("§7当前套装/属性总览:"));
+        lore.add(Component.text("§7"));
         
         Map<String, Integer> counts = new java.util.HashMap<>();
         for (RelicData relic : profile.getEquipped().values()) {
@@ -103,59 +105,59 @@ public class RelicEquipmentGUI {
         }
         
         if (counts.isEmpty()) {
-            lore.add("§8未装备任何圣遗物");
+            lore.add(Component.text("§8未装备任何圣遗物"));
         } else {
             for (Map.Entry<String, Integer> entry : counts.entrySet()) {
                 RelicSet set = plugin.getRelicManager().getRelicSet(entry.getKey());
                 String name = set != null ? set.getName() : entry.getKey();
                 int count = entry.getValue();
                 
-                lore.add("§e" + name + " [" + count + "/4]:");
+                lore.add(Component.text("§e" + name + " [" + count + "/4]:"));
                 
                 // 两件套效果
                 if (count >= 2) {
-                    lore.add("  §a两件套 §7[已激活]");
+                    lore.add(Component.text("  §a两件套 §7[已激活]"));
                     if (set != null) {
                         for (String desc : set.getTwoPieceEffects()) {
-                            lore.add("    §a- " + desc);
+                            lore.add(Component.text("    §a- " + desc));
                         }
                     }
                 } else {
-                    lore.add("  §8两件套 §7[未激活]");
+                    lore.add(Component.text("  §8两件套 §7[未激活]"));
                     if (set != null) {
                         for (String desc : set.getTwoPieceEffects()) {
-                            lore.add("    §8- " + desc);
+                            lore.add(Component.text("    §8- " + desc));
                         }
                     }
                 }
                 
                 // 四件套效果
                 if (count >= 4) {
-                    lore.add("  §a四件套 §7[已激活]");
+                    lore.add(Component.text("  §a四件套 §7[已激活]"));
                     if (set != null) {
                         for (String desc : set.getFourPieceEffects()) {
-                            lore.add("    §a- " + desc);
+                            lore.add(Component.text("    §a- " + desc));
                         }
                     }
                 } else {
-                    lore.add("  §8四件套 §7[未激活]");
+                    lore.add(Component.text("  §8四件套 §7[未激活]"));
                     if (set != null) {
                         for (String desc : set.getFourPieceEffects()) {
-                            lore.add("    §8- " + desc);
+                            lore.add(Component.text("    §8- " + desc));
                         }
                     }
                 }
                 
-                lore.add("§7");
+                lore.add(Component.text("§7"));
             }
         }
 
         // 追加：当前已装备圣遗物属性合计（关键信息）
         java.util.Map<com.salteddoubao.relicsystem.relic.RelicStatType, java.lang.Double> total = plugin.getStatAggregationService().aggregate(profile);
         if (total != null && !total.isEmpty()) {
-            lore.add("§6属性合计:");
+            lore.add(Component.text("§6属性合计:"));
             for (java.util.Map.Entry<com.salteddoubao.relicsystem.relic.RelicStatType, java.lang.Double> e : total.entrySet()) {
-                lore.add("  §7- " + e.getKey().getDisplay() + ": §a" + String.format("%.1f", e.getValue()) + (e.getKey().isPercent() ? "%" : ""));
+                lore.add(Component.text("  §7- " + e.getKey().getDisplay() + ": §a" + String.format("%.1f", e.getValue()) + (e.getKey().isPercent() ? "%" : "")));
             }
         }
         
@@ -172,36 +174,36 @@ public class RelicEquipmentGUI {
         ItemMeta meta = item.getItemMeta();
         
         if (meta != null) {
-            RelicSet set = setRef;
             String setName = setRef != null ? setRef.getName() : relic.getSetId();
-            meta.setDisplayName("§a[已装备] " + getRarityColor(relic.getRarity()) + setName);
+            meta.displayName(Component.text("§a[已装备] " + getRarityColor(relic.getRarity()) + setName)
+                .decoration(TextDecoration.ITALIC, false));
             
-            List<String> lore = new ArrayList<>();
-            lore.add("§7部位: §f" + getSlotDisplayName(relic.getSlot()));
-            lore.add("§7等级: §f" + relic.getLevel());
-            lore.add("§7");
-            lore.add("§6主词条:");
-            lore.add("  " + relic.getMainStat().getType().getDisplay() + ": §a" + 
+            List<Component> lore = new ArrayList<>();
+            lore.add(Component.text("§7部位: §f" + getSlotDisplayName(relic.getSlot())));
+            lore.add(Component.text("§7等级: §f" + relic.getLevel()));
+            lore.add(Component.text("§7"));
+            lore.add(Component.text("§6主词条:"));
+            lore.add(Component.text("  " + relic.getMainStat().getType().getDisplay() + ": §a" + 
                 String.format("%.1f", relic.getMainStat().getValue()) + 
-                (relic.getMainStat().getType().isPercent() ? "%" : ""));
+                (relic.getMainStat().getType().isPercent() ? "%" : "")));
             
             if (!relic.getSubstats().isEmpty()) {
-                lore.add("§7");
-                lore.add("§6副词条:");
+                lore.add(Component.text("§7"));
+                lore.add(Component.text("§6副词条:"));
                 for (RelicSubstat substat : relic.getSubstats()) {
-                    lore.add("  " + substat.getType().getDisplay() + ": §a" + 
+                    lore.add(Component.text("  " + substat.getType().getDisplay() + ": §a" + 
                         String.format("%.1f", substat.getValue()) + 
-                        (substat.getType().isPercent() ? "%" : ""));
+                        (substat.getType().isPercent() ? "%" : "")));
                 }
             }
             
-            lore.add("§7");
+            lore.add(Component.text("§7"));
             if (relic.isLocked()) {
-                lore.add("§c🔒 已锁定");
+                lore.add(Component.text("§c🔒 已锁定"));
             }
-            lore.add("§c点击卸下到仓库");
+            lore.add(Component.text("§c点击卸下到仓库"));
             
-            meta.setLore(lore);
+            meta.lore(lore);
             item.setItemMeta(meta);
         }
         
@@ -214,21 +216,22 @@ public class RelicEquipmentGUI {
         ItemMeta meta = item.getItemMeta();
         
         if (meta != null) {
-            meta.setDisplayName("§7" + getSlotDisplayName(slot) + " §8[空]");
-            meta.setLore(List.of("§7此部位未装备圣遗物", "§7前往仓库选择圣遗物装备"));
+            meta.displayName(Component.text("§7" + getSlotDisplayName(slot) + " §8[空]")
+                .decoration(TextDecoration.ITALIC, false));
+            meta.lore(List.of(Component.text("§7此部位未装备圣遗物"), Component.text("§7前往仓库选择圣遗物装备")));
             item.setItemMeta(meta);
         }
         
         return item;
     }
     
-    private ItemStack createItem(Material material, String name, List<String> lore) {
+    private ItemStack createItem(Material material, Component name, List<Component> lore) {
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(name);
+            meta.displayName(name.decoration(TextDecoration.ITALIC, false));
             if (lore != null) {
-                meta.setLore(lore);
+                meta.lore(lore);
             }
             item.setItemMeta(meta);
         }

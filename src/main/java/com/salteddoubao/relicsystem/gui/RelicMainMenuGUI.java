@@ -1,5 +1,7 @@
 package com.salteddoubao.relicsystem.gui;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -29,11 +31,11 @@ public class RelicMainMenuGUI {
     
     public void open(Player player) {
         Holder holder = new Holder();
-        Inventory inv = Bukkit.createInventory(holder, 45, TITLE);
+        Inventory inv = Bukkit.createInventory(holder, 45, Component.text(TITLE));
         holder.setInventory(inv);
         
         // 设置边框
-        ItemStack border = createItem(Material.GRAY_STAINED_GLASS_PANE, "§7", null);
+        ItemStack border = createItem(Material.GRAY_STAINED_GLASS_PANE, Component.text("§7"), null);
         for (int i = 0; i < 45; i++) {
             if (i < 9 || i >= 36 || i % 9 == 0 || i % 9 == 8) {
                 inv.setItem(i, border);
@@ -42,24 +44,24 @@ public class RelicMainMenuGUI {
         
         // 装备管理按钮
         inv.setItem(EQUIP_SLOT, createItem(Material.DIAMOND_CHESTPLATE, 
-            "§a§l装备管理", 
-            List.of("§7查看和管理当前装备的圣遗物", "§7可以卸下圣遗物到仓库", "§e点击进入")));
+            Component.text("§a§l装备管理"), 
+            List.of(Component.text("§7查看和管理当前装备的圣遗物"), Component.text("§7可以卸下圣遗物到仓库"), Component.text("§e点击进入"))));
             
         // 仓库管理按钮
         inv.setItem(WAREHOUSE_SLOT, createItem(Material.CHEST, 
-            "§b§l仓库管理", 
-            List.of("§7查看仓库中的圣遗物", "§7可以装备、取出到背包", "§e点击进入")));
+            Component.text("§b§l仓库管理"), 
+            List.of(Component.text("§7查看仓库中的圣遗物"), Component.text("§7可以装备、取出到背包"), Component.text("§e点击进入"))));
             
         player.openInventory(inv);
     }
     
-    private ItemStack createItem(Material material, String name, List<String> lore) {
+    private ItemStack createItem(Material material, Component name, List<Component> lore) {
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(name);
+            meta.displayName(name.decoration(TextDecoration.ITALIC, false));
             if (lore != null) {
-                meta.setLore(lore);
+                meta.lore(lore);
             }
             item.setItemMeta(meta);
         }

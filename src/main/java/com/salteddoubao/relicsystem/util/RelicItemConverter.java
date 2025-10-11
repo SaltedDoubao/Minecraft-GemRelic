@@ -1,5 +1,7 @@
 package com.salteddoubao.relicsystem.util;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
@@ -13,6 +15,7 @@ import com.salteddoubao.relicsystem.relic.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * 圣遗物与ItemStack转换工具
@@ -47,50 +50,51 @@ public class RelicItemConverter {
             RelicSet setRef = set;
             if (setRef == null) setRef = plugin.getRelicManager().getRelicSet(relic.getSetId());
             String setName = setRef != null ? setRef.getName() : relic.getSetId();
-            meta.setDisplayName(getRarityColor(relic.getRarity()) + setName + " - " + getSlotDisplayName(relic.getSlot()));
+            meta.displayName(Component.text(getRarityColor(relic.getRarity()) + setName + " - " + getSlotDisplayName(relic.getSlot()))
+                .decoration(TextDecoration.ITALIC, false));
             
             // 设置描述
-            List<String> lore = new ArrayList<>();
-            lore.add("§7等级: §f" + relic.getLevel());
-            lore.add("§7");
+            List<Component> lore = new ArrayList<>();
+            lore.add(Component.text("§7等级: §f" + relic.getLevel()));
+            lore.add(Component.text("§7"));
             
             // 套装效果预览
             if (setRef != null) {
-                lore.add("§6套装效果:");
-                lore.add("  §e两件套");
+                lore.add(Component.text("§6套装效果:"));
+                lore.add(Component.text("  §e两件套"));
                 for (String desc : setRef.getTwoPieceEffects()) {
-                    lore.add("    §7- " + desc);
+                    lore.add(Component.text("    §7- " + desc));
                 }
-                lore.add("  §e四件套");
+                lore.add(Component.text("  §e四件套"));
                 for (String desc : setRef.getFourPieceEffects()) {
-                    lore.add("    §7- " + desc);
+                    lore.add(Component.text("    §7- " + desc));
                 }
-                lore.add("§7");
+                lore.add(Component.text("§7"));
             }
             
-            lore.add("§6主词条:");
-            lore.add("  " + relic.getMainStat().getType().getDisplay() + ": §a" + 
+            lore.add(Component.text("§6主词条:"));
+            lore.add(Component.text("  " + relic.getMainStat().getType().getDisplay() + ": §a" + 
                 String.format("%.1f", relic.getMainStat().getValue()) + 
-                (relic.getMainStat().getType().isPercent() ? "%" : ""));
+                (relic.getMainStat().getType().isPercent() ? "%" : "")));
             
             if (!relic.getSubstats().isEmpty()) {
-                lore.add("§7");
-                lore.add("§6副词条:");
+                lore.add(Component.text("§7"));
+                lore.add(Component.text("§6副词条:"));
                 for (RelicSubstat substat : relic.getSubstats()) {
-                    lore.add("  " + substat.getType().getDisplay() + ": §a" + 
+                    lore.add(Component.text("  " + substat.getType().getDisplay() + ": §a" + 
                         String.format("%.1f", substat.getValue()) + 
-                        (substat.getType().isPercent() ? "%" : ""));
+                        (substat.getType().isPercent() ? "%" : "")));
                 }
             }
             
-            lore.add("§7");
+            lore.add(Component.text("§7"));
             if (relic.isLocked()) {
-                lore.add("§c🔒 已锁定");
+                lore.add(Component.text("§c🔒 已锁定"));
             }
-            lore.add("§7");
-            lore.add("§e右键装备 | Shift+右键放入仓库");
+            lore.add(Component.text("§7"));
+            lore.add(Component.text("§e右键装备 | Shift+右键放入仓库"));
             
-            meta.setLore(lore);
+            meta.lore(lore);
             
             // 存储圣遗物数据
             PersistentDataContainer pdc = meta.getPersistentDataContainer();
@@ -175,14 +179,16 @@ public class RelicItemConverter {
             int exp = Integer.parseInt(parts[5]);
             boolean locked = Boolean.parseBoolean(parts[6]);
             
-            // 主词条
+            // 主词条（兼容旧枚举名）
             String[] mainParts = parts[7].split(":");
+            String mainTypeStr = migrateOldStatType(mainParts[0]);
+            if (mainTypeStr == null) return null; // 已删除的属性类型
             RelicMainStat mainStat = new RelicMainStat(
-                RelicStatType.valueOf(mainParts[0]),
+                RelicStatType.valueOf(mainTypeStr),
                 Double.parseDouble(mainParts[1])
             );
             
-            // 副词条
+            // 副词条（兼容旧枚举名）
             List<RelicSubstat> substats = new ArrayList<>();
             if (parts.length > 8 && !parts[8].isEmpty()) {
                 String[] subParts = parts[8].split(";");
@@ -190,10 +196,13 @@ public class RelicItemConverter {
                     if (!subPart.isEmpty()) {
                         String[] subData = subPart.split(":");
                         if (subData.length == 2) {
-                            substats.add(new RelicSubstat(
-                                RelicStatType.valueOf(subData[0]),
-                                Double.parseDouble(subData[1])
-                            ));
+                            String subTypeStr = migrateOldStatType(subData[0]);
+                            if (subTypeStr != null) { // 跳过已删除的属性
+                                substats.add(new RelicSubstat(
+                                    RelicStatType.valueOf(subTypeStr),
+                                    Double.parseDouble(subData[1])
+                                ));
+                            }
                         }
                     }
                 }
@@ -203,6 +212,26 @@ public class RelicItemConverter {
         } catch (Exception e) {
             return null;
         }
+    }
+    
+    /**
+     * 迁移旧的属性类型名到新名称（兼容性映射）
+     */
+    private static String migrateOldStatType(String oldType) {
+        if (oldType == null) return oldType;
+        // 对应 AP 官方属性重命名
+        return switch (oldType) {
+            case "CRIT_RATE" -> "CRIT_CHANCE";  // 暴击率 -> 暴击几率
+            case "CRIT_DMG" -> "CRIT_RATE";     // 暴击伤害 -> 暴伤倍率
+            case "HEAL_BONUS" -> "RESTORE_RATIO"; // 治疗加成 -> 百分比恢复
+            case "DEFENSE" -> "DEF_FLAT";       // 防御 -> 物理防御（平添）
+            case "PVP_DEFENSE" -> "PVP_DEF";
+            case "PVE_DEFENSE" -> "PVE_DEF";
+            case "SHIELD_BLOCK_CHANCE" -> "SHIELD_BLOCK";
+            // 已删除的属性返回 null，跳过
+            case "ELEM_DMG_ANY", "ATK_SPEED", "LUCK", "KB_RES" -> null;
+            default -> oldType;
+        };
     }
     
     private Material getRarityMaterial(RelicRarity rarity) {

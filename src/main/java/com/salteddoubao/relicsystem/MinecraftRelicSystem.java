@@ -45,7 +45,7 @@ public class MinecraftRelicSystem extends JavaPlugin {
         // 打印启动信息
         getLogger().info("==============================");
         getLogger().info("  RelicSystem 正在启动...");
-        getLogger().info("  版本: " + getDescription().getVersion());
+        getLogger().info("  版本: " + getPluginMeta().getVersion());
         getLogger().info("  作者: SaltedDoubao");
         getLogger().info("==============================");
 
