@@ -4,7 +4,7 @@
 # 插件基本设置
 settings:
   # 是否启用调试模式
-  debug: false
+  debug: true
   # 是否打印圣遗物效果统计的详细日志（优先于 settings.debug）
   relic.debug_effects: false
   
@@ -63,20 +63,23 @@ integration:
     # 百分比缩放：1.0 表示 15 => 15（AP会自动处理为%），0.01 表示 15 => 0.15
     percent_scale: 1.0
     stat_map:
+      # 基础属性（严格对应 AP）
       HP_FLAT: health
       ATK_FLAT: attack
+      DEF_FLAT: defense
       HP_PCT: health
       ATK_PCT: attack
-      DEF_PCT: armor
-      CRIT_RATE: crit
-      CRIT_DMG: crit_rate
-      MOVE_SPEED: moving
-      HEAL_BONUS: restore_ratio
-      # 元素/万能伤害改为具体战斗属性
-      FIRE_CHANCE: fire
-      FIRE_DAMAGE: fire_damage
+      DEF_PCT: defense
+      # 攻击属性
+      PVP_ATK: pvp_attack
+      PVE_ATK: pve_attack
+      REAL_ATK: real_attack
+      CRIT_CHANCE: crit
+      CRIT_RATE: crit_rate
       VAMPIRE_CHANCE: vampire
       VAMPIRE_RATE: vampire_rate
+      FIRE_CHANCE: fire
+      FIRE_DAMAGE: fire_damage
       HIT: hit
       FROZEN_CHANCE: frozen
       FROZEN_INTENSITY: frozen_intensity
@@ -85,17 +88,21 @@ integration:
       SUNDER_ARMOR: sunder_armor
       SEE_THROUGH: see_through
       BREAK_SHIELD: break_shield
+      # 防御属性
+      PVP_DEF: pvp_defense
+      PVE_DEF: pve_defense
       ARMOR: armor
-      DEFENSE: defense
-      PVP_DEFENSE: pvp_defense
-      PVE_DEFENSE: pve_defense
       CRIT_RESIST: crit_resist
       VAMPIRE_RESIST: vampire_resist
       REFLECTION_CHANCE: reflection
       REFLECTION_RATE: reflection_rate
       DODGE_CHANCE: dodge
-      SHIELD_BLOCK_CHANCE: shield_block
+      SHIELD_BLOCK: shield_block
       REMOTE_IMMUNE: remote_immune
+      # 其他属性
+      RESTORE: restore
+      RESTORE_RATIO: restore_ratio
+      MOVE_SPEED: moving
     # 显式指定作为百分比处理的键（其余使用 _PCT 后缀类型自动识别）
     percentage_keys:
       - crit

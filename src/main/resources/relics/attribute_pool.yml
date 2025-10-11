@@ -26,48 +26,52 @@ main_stats:
     base: 8.7
     step: 1.7
 
-  # 杯：元素/万能伤害加成（统一映射为 ELEM_DMG_ANY）
-  # 杯：替换为 AP 的具体战斗属性
-  # 燃烧伤害（数值型）
+  # 杯：战斗伤害属性
+  PVP_ATK:
+    slots: [GOBLET]
+    base: 7.0
+    step: 1.4
+  PVE_ATK:
+    slots: [GOBLET]
+    base: 7.0
+    step: 1.4
   FIRE_DAMAGE:
     slots: [GOBLET]
     base: 5.0
     step: 1.0
-  # 雷击伤害（数值型）
   LIGHTNING_DAMAGE:
     slots: [GOBLET]
     base: 5.0
     step: 1.0
 
-  # 冠：暴击率/暴击伤害/治疗加成/护甲值
-  CRIT_RATE:
+  # 冠：暴击几率/暴伤倍率/护甲值/百分比恢复
+  CRIT_CHANCE:
     slots: [CIRCLET]
     base: 4.5
     step: 0.9
-  CRIT_DMG:
+  CRIT_RATE:
     slots: [CIRCLET]
     base: 9.0
     step: 1.7
-  HEAL_BONUS:
-    slots: [CIRCLET]
-    base: 5.4
-    step: 1.1
   ARMOR:
     slots: [CIRCLET]
     base: 5.0
     step: 1.0
+  RESTORE_RATIO:
+    slots: [CIRCLET]
+    base: 5.4
+    step: 1.1
 
 sub_stats:
-  # 结合图片面板与现有实现，提供可映射到 AP 的常见副词条
-  # 核心暴击属性（高价值）
-  CRIT_RATE:
+  # === 核心暴击属性（高价值，严格对应 AP）===
+  CRIT_CHANCE:
     weight: 3
     pool: [2.7, 3.1, 3.5, 3.9]
-  CRIT_DMG:
+  CRIT_RATE:
     weight: 3
     pool: [5.4, 6.2, 7.0, 7.8]
   
-  # 基础百分比属性（常见）
+  # === 基础百分比属性（常见）===
   HP_PCT:
     weight: 6
     pool: [4.1, 4.7, 5.3, 5.9]
@@ -78,19 +82,22 @@ sub_stats:
     weight: 6
     pool: [5.1, 5.8, 6.5, 7.2]
   
-  # 平添属性（常见）
+  # === 平添属性（常见）===
   HP_FLAT:
     weight: 8
     pool: [120, 140, 160, 180]
   ATK_FLAT:
     weight: 8
     pool: [7, 9, 11, 13]
+  DEF_FLAT:
+    weight: 8
+    pool: [5, 7, 9, 11]
   
-  # 辅助属性
+  # === 其他辅助属性 ===
   MOVE_SPEED:
     weight: 8
     pool: [2.1, 2.5, 2.9, 3.3]
-  HEAL_BONUS:
+  RESTORE_RATIO:
     weight: 5
     pool: [2.7, 3.2, 3.6, 4.1]
 
@@ -132,19 +139,16 @@ sub_stats:
     weight: 4
     pool: [1.0, 1.5, 2.0, 2.5]
 
-  # === 防御/抗性/反制 ===
+  # === 防御/抗性/反制（严格对应 AP）===
+  PVP_DEF:
+    weight: 4
+    pool: [2, 3, 4, 5]
+  PVE_DEF:
+    weight: 6
+    pool: [3, 4, 5, 6]
   ARMOR:
     weight: 6
     pool: [2.0, 2.5, 3.0, 3.5]
-  DEFENSE:
-    weight: 6
-    pool: [3, 4, 5, 6]
-  PVP_DEFENSE:
-    weight: 4
-    pool: [2, 3, 4, 5]
-  PVE_DEFENSE:
-    weight: 6
-    pool: [3, 4, 5, 6]
   CRIT_RESIST:
     weight: 5
     pool: [2.0, 2.5, 3.0, 3.5]
@@ -160,7 +164,7 @@ sub_stats:
   DODGE_CHANCE:
     weight: 6
     pool: [2.0, 2.5, 3.0, 3.5]
-  SHIELD_BLOCK_CHANCE:
+  SHIELD_BLOCK:
     weight: 4
     pool: [1.0, 1.5, 2.0, 2.5]
   REMOTE_IMMUNE:
