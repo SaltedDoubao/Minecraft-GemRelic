@@ -57,7 +57,7 @@ public class PlayerListener implements Listener {
             try {
                 plugin.getAttributePlusBridge().clear(event.getPlayer());
             } catch (Exception e) {
-                if (plugin.getConfig().getBoolean("settings.debug", false)) {
+                if (plugin.getConfigManager() != null && plugin.getConfigManager().isDebugMode()) {
                     plugin.getLogger().warning("清理AP属性失败: " + event.getPlayer().getName() + " - " + e.getMessage());
                 }
             }
@@ -65,32 +65,5 @@ public class PlayerListener implements Listener {
         plugin.getRelicProfileManager().clear(event.getPlayer());
         plugin.getLogger().info(event.getPlayer().getName() + " 退出服务器，已保存圣遗物档案");
     }
-
-    // 后续扩展的事件监听器：
-    // 
-    // @EventHandler
-    // public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
-    //     // 处理攻击伤害加成
-    //     // 从玩家装备的宝石中读取攻击力、暴击率等属性
-    //     // 应用到伤害计算中
-    // }
-    //
-    // @EventHandler
-    // public void onEntityDamage(EntityDamageEvent event) {
-    //     // 处理防御加成
-    //     // 从玩家装备的宝石中读取防御力等属性
-    //     // 减少受到的伤害
-    // }
-    //
-    // @EventHandler
-    // public void onPlayerInteract(PlayerInteractEvent event) {
-    //     // 处理宝石镶嵌/拆卸交互
-    //     // 右键点击装备打开镶嵌界面
-    // }
-    //
-    // @EventHandler
-    // public void onInventoryClick(InventoryClickEvent event) {
-    //     // 处理宝石镶嵌GUI的点击事件
-    // }
 }
 

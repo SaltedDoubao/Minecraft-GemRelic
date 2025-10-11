@@ -63,7 +63,7 @@ public class RelicEffectService {
                 }
             } catch (Throwable t) {
                 plugin.getLogger().warning("[Relic] 向 AttributePlus 下发属性时发生异常，回退内置属性: " + t.getMessage());
-                if (plugin.getConfig().getBoolean("settings.debug", false)) {
+                if (plugin.getConfigManager() != null && plugin.getConfigManager().isDebugMode()) {
                     t.printStackTrace();
                 }
             }
@@ -87,7 +87,7 @@ public class RelicEffectService {
             }
         } catch (Exception e) {
             // 生命值调整失败不影响主要功能
-            if (plugin.getConfig().getBoolean("settings.debug", false)) {
+            if (plugin.getConfigManager() != null && plugin.getConfigManager().isDebugMode()) {
                 plugin.getLogger().warning("调整玩家生命值失败: " + player.getName() + " - " + e.getMessage());
             }
         }
@@ -103,15 +103,12 @@ public class RelicEffectService {
             applyPercentModifier(player, Attribute.GENERIC_MOVEMENT_SPEED, moveSpeed / 100.0, "relic:stat:MOVE_SPEED");
         }
         // 调试日志受配置控制
-        try {
-            boolean debug = plugin.getConfig().getBoolean("settings.debug", false);
-            boolean verbose = plugin.getConfig().getBoolean("relic.debug_effects", false);
+        if (plugin.getConfigManager() != null) {
+            boolean debug = plugin.getConfigManager().isDebugMode();
+            boolean verbose = plugin.getConfigManager().isDebugEffects();
             if (debug || verbose) {
                 plugin.getLogger().info("[Relic] " + player.getName() + " 套装统计: " + count + ", 词条合计=" + statSum);
             }
-        } catch (Exception e) {
-            // 配置读取失败，使用默认值false
-            plugin.getLogger().fine("读取调试配置失败: " + e.getMessage());
         }
     }
 
@@ -139,7 +136,7 @@ public class RelicEffectService {
                 plugin.getAttributePlusBridge().clear(player);
             } catch (Throwable t) {
                 plugin.getLogger().warning("清理 AttributePlus 属性时发生异常: " + t.getMessage());
-                if (plugin.getConfig().getBoolean("settings.debug", false)) {
+                if (plugin.getConfigManager() != null && plugin.getConfigManager().isDebugMode()) {
                     t.printStackTrace();
                 }
             }

@@ -176,7 +176,14 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
                 try { genRarity = RelicRarity.valueOf(args[3].toUpperCase()); } catch (Exception ex) { sender.sendMessage("§c无效稀有度"); return true; }
                 int genLevel;
                 try { genLevel = Integer.parseInt(args[4]); } catch (Exception ex) { sender.sendMessage("§c等级必须是数字"); return true; }
-                if (genLevel < 0) genLevel = 0;
+                if (genLevel < 0) {
+                    genLevel = 0;
+                }
+                int maxLevel = plugin.getConfigManager().getMaxLevel();
+                if (genLevel > maxLevel) {
+                    sender.sendMessage("§c等级不能超过 " + maxLevel);
+                    return true;
+                }
 
                 Player genPlayer = (Player) sender;
                 RelicGenerationService genSvc = plugin.getRelicGenerationService();
@@ -210,7 +217,13 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
                 try { giveRarity = RelicRarity.valueOf(args[4].toUpperCase()); } catch (Exception ex) { sender.sendMessage("§c无效稀有度"); return true; }
                 int level;
                 try { level = Integer.parseInt(args[5]); } catch (NumberFormatException ex) { sender.sendMessage("§c等级必须是数字"); return true; }
-                if (level < 0) level = 0;
+                if (level < 0) {
+                    level = 0;
+                }
+                if (level > plugin.getConfigManager().getMaxLevel()) {
+                    sender.sendMessage("§c等级不能超过 " + plugin.getConfigManager().getMaxLevel());
+                    return true;
+                }
 
                 RelicItemConverter conv = plugin.getRelicItemConverter();
                 int count = 0;

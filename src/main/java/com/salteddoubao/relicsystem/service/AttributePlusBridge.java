@@ -6,7 +6,6 @@ import org.bukkit.entity.Player;
 import com.salteddoubao.relicsystem.MinecraftRelicSystem;
 import com.salteddoubao.relicsystem.relic.RelicStatType;
 
-import java.text.DecimalFormat;
 import java.util.*;
 
 // AP API 引入（编译期可选，运行期需软依赖存在）
@@ -25,6 +24,17 @@ public class AttributePlusBridge {
     // 命令模式（回退）
     private final Map<UUID, Map<String, Double>> lastApplied = new HashMap<>();
 
+    // ✅ 缓存反射对象
+    private Class<?> apiClass;
+    private Class<?> attributeDataClass;
+    private java.lang.reflect.Method getAttrDataMethod;
+    private java.lang.reflect.Method addSourceAttributeMethod;
+    private java.lang.reflect.Method takeSourceAttributeMethod;
+    private java.lang.reflect.Method updateAttributeMethod;
+
+    // ✅ 属性名称映射（占位符 -> 中文服务器键）
+    private final Map<String, String> nameMapping = new HashMap<>();
+
     public AttributePlusBridge(MinecraftRelicSystem plugin) {
         this.plugin = plugin;
         boolean installed = Bukkit.getPluginManager().getPlugin("AttributePlus") != null;
@@ -38,9 +48,99 @@ public class AttributePlusBridge {
         this.percentScale = plugin.getConfig().getDouble("integration.attributeplus.percent_scale", 1.0);
         this.percentageKeys = new java.util.HashSet<>(plugin.getConfig().getStringList("integration.attributeplus.percentage_keys"));
         
+        // ✅ 加载属性名称映射
+        loadNameMapping();
+
+        // ✅ 初始化反射对象
+        if (enabled && apiMode) {
+            initializeReflection();
+        }
+
         // 启动时输出配置状态
         if (enabled) {
             plugin.getLogger().info("[AP Bridge] AttributePlus 集成已启用 - namespace=" + namespace + ", apiMode=" + apiMode + ", stat_map映射数=" + map.size());
+            if (apiClass != null) {
+                plugin.getLogger().info("[AP Bridge] 反射对象初始化成功");
+            }
+        }
+    }
+
+    /**
+     * 加载属性名称映射
+     */
+    private void loadNameMapping() {
+        org.bukkit.configuration.ConfigurationSection mappingSection = 
+            plugin.getConfig().getConfigurationSection("integration.attributeplus.name_mapping");
+        
+        if (mappingSection != null && !mappingSection.getKeys(false).isEmpty()) {
+            // 从配置加载映射
+            for (String key : mappingSection.getKeys(false)) {
+                nameMapping.put(key, mappingSection.getString(key));
+            }
+            plugin.getLogger().info("[AP Bridge] 从配置加载了 " + nameMapping.size() + " 个属性名称映射");
+        } else {
+            // 使用默认映射
+            loadDefaultNameMapping();
+            plugin.getLogger().info("[AP Bridge] 使用默认属性名称映射");
+        }
+    }
+
+    /**
+     * 加载默认属性名称映射
+     */
+    private void loadDefaultNameMapping() {
+        nameMapping.put("health", "生命力");
+        nameMapping.put("attack", "物理伤害");
+        nameMapping.put("defense", "物理防御");
+        nameMapping.put("pvp_attack", "PVP伤害");
+        nameMapping.put("pve_attack", "PVE伤害");
+        nameMapping.put("pvp_defense", "PVP防御");
+        nameMapping.put("pve_defense", "PVE防御");
+        nameMapping.put("real_attack", "真实伤害");
+        nameMapping.put("crit", "暴击几率");
+        nameMapping.put("crit_rate", "暴伤倍率");
+        nameMapping.put("vampire", "吸血几率");
+        nameMapping.put("vampire_rate", "吸血倍率");
+        nameMapping.put("shoot_speed", "箭矢速度");
+        nameMapping.put("shoot_spread", "箭术精准");
+        nameMapping.put("shoot_through", "箭矢穿透率");
+        nameMapping.put("fire", "燃烧几率");
+        nameMapping.put("fire_damage", "燃烧伤害");
+        nameMapping.put("frozen", "冰冻几率");
+        nameMapping.put("frozen_intensity", "冰冻强度");
+        nameMapping.put("lightning", "雷击几率");
+        nameMapping.put("lightning_damage", "雷击伤害");
+        nameMapping.put("hit", "命中几率");
+        nameMapping.put("sunder_armor", "破甲几率");
+        nameMapping.put("see_through", "护甲穿透");
+        nameMapping.put("break_shield", "破盾几率");
+        nameMapping.put("armor", "护甲值");
+        nameMapping.put("crit_resist", "暴击抵抗");
+        nameMapping.put("vampire_resist", "吸血抵抗");
+        nameMapping.put("reflection", "反弹几率");
+        nameMapping.put("reflection_rate", "反弹倍率");
+        nameMapping.put("dodge", "闪避几率");
+        nameMapping.put("shield_block", "盾牌格挡率");
+        nameMapping.put("remote_immune", "箭伤免疫率");
+        nameMapping.put("moving", "移速加成");
+        nameMapping.put("restore", "生命恢复");
+        nameMapping.put("restore_ratio", "百分比恢复");
+    }
+
+    /**
+     * 初始化反射对象
+     */
+    private void initializeReflection() {
+        try {
+            apiClass = Class.forName("org.serverct.ersha.api.AttributeAPI");
+            attributeDataClass = Class.forName("org.serverct.ersha.attribute.data.AttributeData");
+            getAttrDataMethod = apiClass.getMethod("getAttrData", org.bukkit.entity.LivingEntity.class);
+            addSourceAttributeMethod = apiClass.getMethod("addSourceAttribute", attributeDataClass, String.class, List.class);
+            takeSourceAttributeMethod = apiClass.getMethod("takeSourceAttribute", attributeDataClass, String.class);
+            updateAttributeMethod = apiClass.getMethod("updateAttribute", org.bukkit.entity.LivingEntity.class);
+        } catch (Exception e) {
+            plugin.getLogger().warning("[AP Bridge] 反射对象初始化失败: " + e.getMessage());
+            apiClass = null; // 标记初始化失败
         }
     }
 
@@ -48,12 +148,7 @@ public class AttributePlusBridge {
 
     public boolean apply(Player player, Map<RelicStatType, Double> stats) {
         if (!enabled) return false;
-        boolean debug = false;
-        try {
-            debug = plugin.getConfig().getBoolean("settings.debug", false);
-        } catch (Exception e) {
-            plugin.getLogger().fine("读取调试配置失败: " + e.getMessage());
-        }
+        boolean debug = plugin.getConfigManager() != null && plugin.getConfigManager().isDebugMode();
 
         // 生成AP格式的属性字符串列表（像Lore一样的格式）
         List<String> attributeLines = new ArrayList<>();
@@ -70,7 +165,7 @@ public class AttributePlusBridge {
             }
             
             // 必须使用中文服务器键（AP 的 attributeNameList 使用中文键索引）
-            String serverKey = resolveServerKey(null, apKey);
+            String serverKey = resolveServerKey(apKey);
             // 移除颜色代码（AP不识别颜色代码）
             String cleanKey = serverKey.replaceAll("§[0-9a-fk-or]", "");
             
@@ -115,16 +210,13 @@ public class AttributePlusBridge {
         }
 
         // 优先 API 模式 - 使用List<String>格式（让AP像读取Lore一样解析）
-        if (apiMode) {
+        if (apiMode && apiClass != null) {
             try {
-                Class<?> apiClass = Class.forName("org.serverct.ersha.api.AttributeAPI");
-                Object attributeData = apiClass.getMethod("getAttrData", org.bukkit.entity.LivingEntity.class).invoke(null, player);
-
-                Class<?> attributeDataClass = Class.forName("org.serverct.ersha.attribute.data.AttributeData");
+                // ✅ 使用缓存的反射对象
+                Object attributeData = getAttrDataMethod.invoke(null, player);
                 
                 // 使用List<String>格式的addSourceAttribute方法（让AP解析字符串）
-                apiClass.getMethod("addSourceAttribute", attributeDataClass, String.class, List.class)
-                        .invoke(null, attributeData, namespace, attributeLines);
+                addSourceAttributeMethod.invoke(null, attributeData, namespace, attributeLines);
                 
                 plugin.getLogger().info("[AP] addSourceAttribute(List) 调用成功");
 
@@ -133,7 +225,7 @@ public class AttributePlusBridge {
                 for (Map.Entry<RelicStatType, Double> e : stats.entrySet()) {
                     String apKey = map.get(e.getKey());
                     if (apKey != null) {
-                        String serverKey = resolveServerKey(null, apKey);
+                        String serverKey = resolveServerKey(apKey);
                         appliedJoin.merge(serverKey, e.getValue(), Double::sum);
                     }
                 }
@@ -141,19 +233,19 @@ public class AttributePlusBridge {
                 // 触发 AP 重算，确保 /ap stats 面板即时刷新（延迟1 tick确保属性已写入）
                 plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                     try {
-                        Class<?> apiClass2 = Class.forName("org.serverct.ersha.api.AttributeAPI");
-                        apiClass2.getMethod("updateAttribute", org.bukkit.entity.LivingEntity.class).invoke(null, player);
+                        // ✅ 使用缓存的反射对象
+                        updateAttributeMethod.invoke(null, player);
                         plugin.getLogger().info("[AP] updateAttribute 调用成功 - 玩家: " + player.getName());
                     } catch (Exception e) {
-                        if (plugin.getConfig().getBoolean("settings.debug", false)) {
+                        if (plugin.getConfigManager() != null && plugin.getConfigManager().isDebugMode()) {
                             plugin.getLogger().warning("[AP] 触发属性重算失败: " + e.getMessage());
                         }
                     }
                 }, 1L);
                 return !(appliedJoin.isEmpty());
             } catch (Exception apiError) {
-                plugin.getLogger().warning("[AP] API 模式调用失败，回退命令模式: " + apiError.getMessage());
-                if (plugin.getConfig().getBoolean("settings.debug", false) && apiError.getCause() != null) {
+                plugin.getLogger().warning("[AP] API 模式调用失败: " + apiError.getMessage());
+                if (plugin.getConfigManager() != null && plugin.getConfigManager().isDebugMode() && apiError.getCause() != null) {
                     plugin.getLogger().warning("  原因: " + apiError.getCause().getMessage());
                 }
             }
@@ -163,93 +255,44 @@ public class AttributePlusBridge {
         return false;
     }
 
-    private String resolveServerKey(Class<?> apiClassForKey, String apKey) {
-        // AP 的 getServerAttributeName 接收默认属性名（中文，如"物理伤害"）返回服务器键（也是中文）
-        // 我们的 config.yml 中 stat_map 存的是占位键（英文，如 attack），需要查找对应的中文默认名
-        // 由于 AP attribute.yml 中 key.attackOrDefense.attack="物理伤害"，我们需要直接用中文映射
-        // 方案：在 config.yml 的 stat_map 中直接配置中文服务器键，或在此处硬编码映射表
-        
-        // 硬编码英文占位键到中文服务器键的映射（基于 attribute.yml）
-        Map<String, String> placeholderToChinese = new HashMap<>();
-        placeholderToChinese.put("health", "生命力");
-        placeholderToChinese.put("attack", "物理伤害");
-        placeholderToChinese.put("defense", "物理防御");
-        placeholderToChinese.put("pvp_attack", "PVP伤害");
-        placeholderToChinese.put("pve_attack", "PVE伤害");
-        placeholderToChinese.put("pvp_defense", "PVP防御");
-        placeholderToChinese.put("pve_defense", "PVE防御");
-        placeholderToChinese.put("real_attack", "真实伤害");
-        placeholderToChinese.put("crit", "暴击几率");
-        placeholderToChinese.put("crit_rate", "暴伤倍率");  // 注意：AP中是"暴伤倍率"不是"暴击倍率"
-        placeholderToChinese.put("vampire", "吸血几率");
-        placeholderToChinese.put("vampire_rate", "吸血倍率");
-        placeholderToChinese.put("shoot_speed", "箭矢速度");
-        placeholderToChinese.put("shoot_spread", "箭术精准");
-        placeholderToChinese.put("shoot_through", "箭矢穿透率");
-        placeholderToChinese.put("fire", "燃烧几率");
-        placeholderToChinese.put("fire_damage", "燃烧伤害");
-        placeholderToChinese.put("frozen", "冰冻几率");
-        placeholderToChinese.put("frozen_intensity", "冰冻强度");
-        placeholderToChinese.put("lightning", "雷击几率");
-        placeholderToChinese.put("lightning_damage", "雷击伤害");
-        placeholderToChinese.put("hit", "命中几率");
-        placeholderToChinese.put("sunder_armor", "破甲几率");
-        placeholderToChinese.put("see_through", "护甲穿透");
-        placeholderToChinese.put("break_shield", "破盾几率");
-        placeholderToChinese.put("armor", "护甲值");
-        placeholderToChinese.put("crit_resist", "暴击抵抗");
-        placeholderToChinese.put("vampire_resist", "吸血抵抗");
-        placeholderToChinese.put("reflection", "反弹几率");
-        placeholderToChinese.put("reflection_rate", "反弹倍率");
-        placeholderToChinese.put("dodge", "闪避几率");
-        placeholderToChinese.put("shield_block", "盾牌格挡率");
-        placeholderToChinese.put("remote_immune", "箭伤免疫率");
-        placeholderToChinese.put("moving", "移速加成");
-        placeholderToChinese.put("restore", "生命恢复");
-        placeholderToChinese.put("restore_ratio", "百分比恢复");
-        
-        String chinese = placeholderToChinese.get(apKey);
-        return (chinese != null) ? chinese : apKey;
+    /**
+     * ✅ 解析服务器键（占位符 -> 中文名称）
+     * 使用配置的映射表，如果找不到则返回原键
+     */
+    private String resolveServerKey(String apKey) {
+        return nameMapping.getOrDefault(apKey, apKey);
     }
 
 
     public void clear(Player player) {
         if (!enabled) return;
-        boolean debug = false;
-        try {
-            debug = plugin.getConfig().getBoolean("settings.debug", false);
-        } catch (Exception e) {
-            // 配置读取失败，使用默认值false
-            plugin.getLogger().fine("读取调试配置失败: " + e.getMessage());
-        }
+        boolean debug = plugin.getConfigManager() != null && plugin.getConfigManager().isDebugMode();
         if (debug) plugin.getLogger().info("[AP] 清理 " + player.getName());
 
         // 优先 API 模式
-        if (apiMode) {
+        if (apiMode && apiClass != null) {
             try {
-                Class<?> apiClass = Class.forName("org.serverct.ersha.api.AttributeAPI");
-                Object attributeData = apiClass.getMethod("getAttrData", org.bukkit.entity.LivingEntity.class).invoke(null, player);
-                Class<?> attributeDataClass = Class.forName("org.serverct.ersha.attribute.data.AttributeData");
-                apiClass.getMethod("takeSourceAttribute", attributeDataClass, String.class)
-                        .invoke(null, attributeData, namespace);
+                // ✅ 使用缓存的反射对象
+                Object attributeData = getAttrDataMethod.invoke(null, player);
+                takeSourceAttributeMethod.invoke(null, attributeData, namespace);
                 lastApplied.remove(player.getUniqueId());
                 plugin.getLogger().info("[AP] takeSourceAttribute 调用成功");
                 // 清理后请求一次重算（延迟1 tick）
                 plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                     try {
-                        Class<?> apiClass2 = Class.forName("org.serverct.ersha.api.AttributeAPI");
-                        apiClass2.getMethod("updateAttribute", org.bukkit.entity.LivingEntity.class).invoke(null, player);
+                        // ✅ 使用缓存的反射对象
+                        updateAttributeMethod.invoke(null, player);
                         plugin.getLogger().info("[AP] 清理后 updateAttribute 调用成功 - 玩家: " + player.getName());
                     } catch (Exception e) {
-                        if (plugin.getConfig().getBoolean("settings.debug", false)) {
+                        if (plugin.getConfigManager() != null && plugin.getConfigManager().isDebugMode()) {
                             plugin.getLogger().warning("[AP] 清理后触发属性重算失败: " + e.getMessage());
                         }
                     }
                 }, 1L);
                 return;
             } catch (Exception apiError) {
-                plugin.getLogger().warning("[AP] API 清理失败，回退命令模式: " + apiError.getMessage());
-                if (plugin.getConfig().getBoolean("settings.debug", false) && apiError.getCause() != null) {
+                plugin.getLogger().warning("[AP] API 清理失败: " + apiError.getMessage());
+                if (plugin.getConfigManager() != null && plugin.getConfigManager().isDebugMode() && apiError.getCause() != null) {
                     plugin.getLogger().warning("  原因: " + apiError.getCause().getMessage());
                 }
             }
