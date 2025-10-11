@@ -60,7 +60,9 @@ integration:
     namespace: RelicSystem
     # 使用 AP 原生 API 对接（true）或回退为命令模板（false）
     api_mode: true
-    # 百分比缩放：1.0 表示 15 => 15（AP会自动处理为%），0.01 表示 15 => 0.15
+    # 百分比缩放：1.0 表示 15 => 15，0.01 表示 15 => 0.15
+    # 注意：AP的tempPercentage可能期望0-1的小数，而不是0-100的整数
+    # 如果属性显示异常，请尝试修改此值（推荐先尝试 0.01）
     percent_scale: 1.0
     stat_map:
       # 基础属性（严格对应 AP）
@@ -104,12 +106,14 @@ integration:
       RESTORE_RATIO: restore_ratio
       MOVE_SPEED: moving
     # 显式指定作为百分比处理的键（其余使用 _PCT 后缀类型自动识别）
+    # 注意：以下列表用于补充 _PCT 后缀无法识别的百分比属性
     percentage_keys:
+      # 基础百分比属性（与 HP_PCT/ATK_PCT/DEF_PCT 对应）
+      # 注意：不要在这里添加 health/attack/defense，因为它们通过 _PCT 后缀已识别
+      # 攻击类百分比
       - crit
       - crit_rate
       - vampire_rate
-      - moving
-      - restore_ratio
       - fire
       - vampire
       - hit
@@ -119,6 +123,9 @@ integration:
       - sunder_armor
       - see_through
       - break_shield
+      - pve_attack
+      - pvp_attack
+      # 防御类百分比
       - armor
       - crit_resist
       - vampire_resist
@@ -127,8 +134,9 @@ integration:
       - dodge
       - shield_block
       - remote_immune
-      - pve_attack
-      - pvp_attack
+      # 其他类百分比
+      - moving
+      - restore_ratio
     operation:
       default: add
     command_mode:
