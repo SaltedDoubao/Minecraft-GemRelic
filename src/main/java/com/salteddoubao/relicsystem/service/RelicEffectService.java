@@ -59,7 +59,12 @@ public class RelicEffectService {
                     try {
                         Class<?> apiClass2 = Class.forName("org.serverct.ersha.api.AttributeAPI");
                         apiClass2.getMethod("updateAttribute", org.bukkit.entity.LivingEntity.class).invoke(null, player);
-                    } catch (Throwable ignore) {}
+                    } catch (Exception e) {
+                        if (plugin.getConfig().getBoolean("settings.debug", false)) {
+                            plugin.getLogger().warning("[AP] 触发属性重算失败: " + e.getMessage());
+                        }
+                        // 非关键操作，忽略失败
+                    }
                     return; // AP 成功接管
                 } else {
                     plugin.getLogger().warning("[Relic] AttributePlus 未能成功下发属性，回退到内置属性应用");
@@ -85,7 +90,12 @@ public class RelicEffectService {
             if (maxHp != null && player.getHealth() > maxHp.getValue()) {
                 player.setHealth(maxHp.getValue());
             }
-        } catch (Throwable ignore) {}
+        } catch (Exception e) {
+            // 生命值调整失败不影响主要功能
+            if (plugin.getConfig().getBoolean("settings.debug", false)) {
+                plugin.getLogger().warning("调整玩家生命值失败: " + player.getName() + " - " + e.getMessage());
+            }
+        }
 
         // 攻击力（平添）：作为原版攻击力的加法修饰，由伤害事件再叠加百分比与暴击
         Double atkFlat = statSum.get(RelicStatType.ATK_FLAT);
@@ -104,7 +114,10 @@ public class RelicEffectService {
             if (debug || verbose) {
                 plugin.getLogger().info("[Relic] " + player.getName() + " 套装统计: " + count + ", 词条合计=" + statSum);
             }
-        } catch (Throwable ignore) {}
+        } catch (Exception e) {
+            // 配置读取失败，使用默认值false
+            plugin.getLogger().fine("读取调试配置失败: " + e.getMessage());
+        }
     }
 
     public void clear(Player player) {
@@ -115,7 +128,11 @@ public class RelicEffectService {
         for (Applied a : list) {
             AttributeInstance inst = player.getAttribute(a.attribute);
             if (inst != null && a.modifier != null) {
-                try { inst.removeModifier(a.modifier); } catch (Exception ignored) {}
+                try {
+                    inst.removeModifier(a.modifier);
+                } catch (Exception e) {
+                    plugin.getLogger().warning("移除属性修饰失败 [" + a.attribute + "]: " + e.getMessage());
+                }
             }
         }
         // 若启用 AP 集成，清理 AP 侧属性交付
@@ -170,11 +187,18 @@ public class RelicEffectService {
         for (AttributeModifier m : new java.util.HashSet<>(inst.getModifiers())) {
             try {
                 boolean sameId = false;
-                try { sameId = uuid.equals(m.getUniqueId()); } catch (Throwable ignored) {}
+                try {
+                    sameId = uuid.equals(m.getUniqueId());
+                } catch (Exception e) {
+                    // 某些Bukkit版本可能不支持getUniqueId
+                    plugin.getLogger().fine("获取AttributeModifier UUID失败: " + e.getMessage());
+                }
                 if (sameId || key.equals(m.getName())) {
                     inst.removeModifier(m);
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                plugin.getLogger().warning("移除属性修饰失败 [" + key + "]: " + e.getMessage());
+            }
         }
     }
 

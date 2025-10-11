@@ -54,7 +54,9 @@ public class RelicManager {
             if (mat != null && !mat.isEmpty()) {
                 try {
                     template = org.bukkit.Material.valueOf(mat.toUpperCase());
-                } catch (IllegalArgumentException ignore) {}
+                } catch (IllegalArgumentException e) {
+                    plugin.getLogger().warning("套装 [" + id + "] 的模板材质无效: " + mat + "，使用默认材质");
+                }
             }
             List<String> two = s.getStringList("bonuses.two_piece_desc");
             List<String> four = s.getStringList("bonuses.four_piece_desc");
@@ -121,7 +123,11 @@ public class RelicManager {
                     for (Object o : ss.getList("pool", java.util.Collections.emptyList())) {
                         if (o instanceof Number) values.add(((Number) o).doubleValue());
                         else {
-                            try { values.add(Double.parseDouble(String.valueOf(o))); } catch (Exception ignore) {}
+                            try {
+                                values.add(Double.parseDouble(String.valueOf(o)));
+                            } catch (NumberFormatException ex) {
+                                plugin.getLogger().warning("副词条 [" + key + "] 池中存在无效数值: " + o + "，已跳过");
+                            }
                         }
                     }
                     e.pool.addAll(values);
@@ -168,7 +174,10 @@ public class RelicManager {
                         plugin.getLogger().warning("检测到属性池中存在未映射至 AP 的属性: " + unknown);
                     }
                 }
-            } catch (Throwable ignore) {}
+            } catch (Exception e) {
+                // AP集成检查失败，不影响主功能
+                plugin.getLogger().fine("AP映射检查失败: " + e.getMessage());
+            }
         } catch (Exception e) {
             plugin.getLogger().severe("加载属性池失败: " + e.getMessage());
         }

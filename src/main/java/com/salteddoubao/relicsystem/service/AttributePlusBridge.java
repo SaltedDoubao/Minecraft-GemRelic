@@ -57,15 +57,18 @@ public class AttributePlusBridge {
     public boolean apply(Player player, Map<RelicStatType, Double> stats) {
         if (!enabled) return false;
         boolean debug = false;
-        try { debug = plugin.getConfig().getBoolean("settings.debug", false); } catch (Throwable ignore) {}
+        try {
+            debug = plugin.getConfig().getBoolean("settings.debug", false);
+        } catch (Exception e) {
+            // 配置读取失败，使用默认值false
+            plugin.getLogger().fine("读取调试配置失败: " + e.getMessage());
+        }
 
         // 将圣遗物词条按"数值属性/百分比属性"分别汇总，同一 AP 键进行合并，避免覆盖
         HashMap<String, Number[]> valueMap = new HashMap<>(); // key -> [flatValue, 0]
         HashMap<String, Double> pctMap = new HashMap<>();     // key -> percentValue (已按 percentScale 缩放)
 
         // 优先解析 API 类以转换占位键为服务器键（中文）
-        Class<?> apiClassForKey = null;
-        try { apiClassForKey = Class.forName("org.serverct.ersha.api.AttributeAPI"); } catch (Throwable ignore) {}
         for (Map.Entry<RelicStatType, Double> entry : stats.entrySet()) {
             RelicStatType type = entry.getKey();
             double raw = entry.getValue();
@@ -76,7 +79,12 @@ public class AttributePlusBridge {
             // 必须使用中文服务器键（AP 的 attributeNameList 使用中文键索引）
             String serverKey = resolveServerKey(null, apKey);
             boolean pctByType = false;
-            try { pctByType = type.name().endsWith("_PCT"); } catch (Throwable ignore) {}
+            try {
+                pctByType = type.name().endsWith("_PCT");
+            } catch (Exception e) {
+                // 属性类型判断失败，使用默认值false
+                plugin.getLogger().fine("判断属性类型失败: " + e.getMessage());
+            }
             boolean pctByKey = (percentageKeys != null && percentageKeys.contains(apKey));
             boolean asPercent = pctByType || pctByKey;
 
@@ -135,10 +143,18 @@ public class AttributePlusBridge {
                 try {
                     Class<?> apiClass2 = Class.forName("org.serverct.ersha.api.AttributeAPI");
                     apiClass2.getMethod("updateAttribute", org.bukkit.entity.LivingEntity.class).invoke(null, player);
-                } catch (Throwable ignore) {}
+                } catch (Exception e) {
+                    if (plugin.getConfig().getBoolean("settings.debug", false)) {
+                        plugin.getLogger().warning("[AP] 触发属性重算失败: " + e.getMessage());
+                    }
+                    // 非关键操作，忽略失败
+                }
                 return !(appliedJoin.isEmpty());
-            } catch (Throwable apiError) {
+            } catch (Exception apiError) {
                 plugin.getLogger().warning("[AP] API 模式调用失败，回退命令模式: " + apiError.getMessage());
+                if (plugin.getConfig().getBoolean("settings.debug", false) && apiError.getCause() != null) {
+                    plugin.getLogger().warning("  原因: " + apiError.getCause().getMessage());
+                }
             }
         }
 
@@ -173,7 +189,12 @@ public class AttributePlusBridge {
             try {
                 Class<?> apiClass2 = Class.forName("org.serverct.ersha.api.AttributeAPI");
                 apiClass2.getMethod("updateAttribute", org.bukkit.entity.LivingEntity.class).invoke(null, player);
-            } catch (Throwable ignore) {}
+            } catch (Exception e) {
+                if (plugin.getConfig().getBoolean("settings.debug", false)) {
+                    plugin.getLogger().warning("[AP] 命令模式触发属性重算失败: " + e.getMessage());
+                }
+                // 非关键操作，忽略失败
+            }
             return !translatedForCmd.isEmpty();
         }
 
@@ -197,7 +218,7 @@ public class AttributePlusBridge {
         placeholderToChinese.put("pve_defense", "PVE防御");
         placeholderToChinese.put("real_attack", "真实伤害");
         placeholderToChinese.put("crit", "暴击几率");
-        placeholderToChinese.put("crit_rate", "暴伤倍率");
+        placeholderToChinese.put("crit_rate", "暴击倍率");
         placeholderToChinese.put("vampire", "吸血几率");
         placeholderToChinese.put("vampire_rate", "吸血倍率");
         placeholderToChinese.put("shoot_speed", "箭矢速度");
@@ -229,27 +250,16 @@ public class AttributePlusBridge {
         return (chinese != null) ? chinese : apKey;
     }
 
-    private String toPascalCase(String key) {
-        if (key == null || key.isEmpty()) return key;
-        String[] parts = key.split("_");
-        StringBuilder b = new StringBuilder();
-        for (String p : parts) {
-            if (p.isEmpty()) continue;
-            // 保留全大写缩写（如 pve -> PVE）
-            if (p.length() <= 3) {
-                b.append(p.toUpperCase());
-                continue;
-            }
-            b.append(Character.toUpperCase(p.charAt(0)));
-            if (p.length() > 1) b.append(p.substring(1));
-        }
-        return b.toString();
-    }
 
     public void clear(Player player) {
         if (!enabled) return;
         boolean debug = false;
-        try { debug = plugin.getConfig().getBoolean("settings.debug", false); } catch (Throwable ignore) {}
+        try {
+            debug = plugin.getConfig().getBoolean("settings.debug", false);
+        } catch (Exception e) {
+            // 配置读取失败，使用默认值false
+            plugin.getLogger().fine("读取调试配置失败: " + e.getMessage());
+        }
         if (debug) plugin.getLogger().info("[AP] 清理 " + player.getName());
 
         // 优先 API 模式
@@ -265,10 +275,18 @@ public class AttributePlusBridge {
                 try {
                     Class<?> apiClass2 = Class.forName("org.serverct.ersha.api.AttributeAPI");
                     apiClass2.getMethod("updateAttribute", org.bukkit.entity.LivingEntity.class).invoke(null, player);
-                } catch (Throwable ignore) {}
+                } catch (Exception e) {
+                    if (plugin.getConfig().getBoolean("settings.debug", false)) {
+                        plugin.getLogger().warning("[AP] 清理后触发属性重算失败: " + e.getMessage());
+                    }
+                    // 非关键操作，忽略失败
+                }
                 return;
-            } catch (Throwable apiError) {
+            } catch (Exception apiError) {
                 plugin.getLogger().warning("[AP] API 清理失败，回退命令模式: " + apiError.getMessage());
+                if (plugin.getConfig().getBoolean("settings.debug", false) && apiError.getCause() != null) {
+                    plugin.getLogger().warning("  原因: " + apiError.getCause().getMessage());
+                }
             }
         }
 
@@ -310,26 +328,14 @@ public class AttributePlusBridge {
         try {
             Class<?> apiClass2 = Class.forName("org.serverct.ersha.api.AttributeAPI");
             apiClass2.getMethod("updateAttribute", org.bukkit.entity.LivingEntity.class).invoke(null, player);
-        } catch (Throwable ignore) {}
-    }
-
-    private boolean isPercentageKey(String apKey) {
-        if (percentageKeys.contains(apKey)) return true;
-        // 兜底：若映射源为 *_PCT 则按百分比处理
-        for (Map.Entry<RelicStatType, String> e : map.entrySet()) {
-            if (Objects.equals(e.getValue(), apKey) && e.getKey().name().endsWith("_PCT")) return true;
+        } catch (Exception e) {
+            if (plugin.getConfig().getBoolean("settings.debug", false)) {
+                plugin.getLogger().warning("[AP] 命令模式清理后触发属性重算失败: " + e.getMessage());
+            }
+            // 非关键操作，忽略失败
         }
-        return false;
     }
 
-    private Map<String, Double> translate(Map<RelicStatType, Double> stats) {
-        Map<String, Double> m = new HashMap<>();
-        stats.forEach((k, v) -> {
-            String ap = map.get(k);
-            if (ap != null) m.put(ap, v);
-        });
-        return m;
-    }
 }
 
 

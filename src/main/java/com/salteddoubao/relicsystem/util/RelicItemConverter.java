@@ -11,11 +11,11 @@ import org.bukkit.persistence.PersistentDataType;
 
 import com.salteddoubao.relicsystem.MinecraftRelicSystem;
 import com.salteddoubao.relicsystem.relic.*;
+import com.salteddoubao.relicsystem.util.RelicDisplayUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * 圣遗物与ItemStack转换工具
@@ -40,7 +40,7 @@ public class RelicItemConverter {
             material = set.getTemplateMaterial();
         }
         if (material == null) {
-            material = getRarityMaterial(relic.getRarity());
+            material = RelicDisplayUtils.getRarityMaterial(relic.getRarity());
         }
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
@@ -50,7 +50,7 @@ public class RelicItemConverter {
             RelicSet setRef = set;
             if (setRef == null) setRef = plugin.getRelicManager().getRelicSet(relic.getSetId());
             String setName = setRef != null ? setRef.getName() : relic.getSetId();
-            meta.displayName(Component.text(getRarityColor(relic.getRarity()) + setName + " - " + getSlotDisplayName(relic.getSlot()))
+            meta.displayName(Component.text(RelicDisplayUtils.getRarityColor(relic.getRarity()) + setName + " - " + RelicDisplayUtils.getSlotDisplayName(relic.getSlot()))
                 .decoration(TextDecoration.ITALIC, false));
             
             // 设置描述
@@ -89,7 +89,7 @@ public class RelicItemConverter {
             
             lore.add(Component.text("§7"));
             if (relic.isLocked()) {
-                lore.add(Component.text("§c🔒 已锁定"));
+                lore.add(Component.text("§c已锁定"));
             }
             lore.add(Component.text("§7"));
             lore.add(Component.text("§e右键装备 | Shift+右键放入仓库"));
@@ -105,7 +105,12 @@ public class RelicItemConverter {
                 try {
                     meta.addEnchant(org.bukkit.enchantments.Enchantment.DURABILITY, 1, true);
                     meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
-                } catch (Throwable ignore) {}
+                } catch (Exception e) {
+                    if (plugin.getConfig().getBoolean("settings.debug", false)) {
+                        plugin.getLogger().warning("为圣遗物添加发光效果失败: " + e.getMessage());
+                    }
+                    // 非关键功能，继续执行
+                }
             }
             item.setItemMeta(meta);
         }
@@ -234,33 +239,4 @@ public class RelicItemConverter {
         };
     }
     
-    private Material getRarityMaterial(RelicRarity rarity) {
-        return switch (rarity) {
-            case WHITE -> Material.QUARTZ;
-            case GREEN -> Material.EMERALD;
-            case BLUE -> Material.LAPIS_LAZULI;
-            case PURPLE -> Material.AMETHYST_SHARD;
-            case GOLD -> Material.GOLD_INGOT;
-        };
-    }
-    
-    private String getRarityColor(RelicRarity rarity) {
-        return switch (rarity) {
-            case WHITE -> "§f";
-            case GREEN -> "§a";
-            case BLUE -> "§9";
-            case PURPLE -> "§d";
-            case GOLD -> "§6";
-        };
-    }
-    
-    private String getSlotDisplayName(RelicSlot slot) {
-        return switch (slot) {
-            case FLOWER -> "生之花";
-            case PLUME -> "死之羽";
-            case SANDS -> "时之沙";
-            case GOBLET -> "空之杯";
-            case CIRCLET -> "理之冠";
-        };
-    }
 }

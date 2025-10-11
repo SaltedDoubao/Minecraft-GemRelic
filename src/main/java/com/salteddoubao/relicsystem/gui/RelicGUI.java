@@ -14,7 +14,6 @@ import java.util.List;
 
 public class RelicGUI {
     public static final String TITLE = "§6§l圣遗物";
-    private final MinecraftRelicSystem plugin;
 
     // 简化：一个54格界面，前5个固定槽代表五个部位
     private static final int SLOT_FLOWER = 10;
@@ -23,9 +22,6 @@ public class RelicGUI {
     private static final int SLOT_GOBLET = 28;
     private static final int SLOT_CIRCLET= 34;
 
-    public RelicGUI(MinecraftRelicSystem plugin) {
-        this.plugin = plugin;
-    }
 
     public void open(Player player) {
         Inventory inv = Bukkit.createInventory(null, 54, TITLE);

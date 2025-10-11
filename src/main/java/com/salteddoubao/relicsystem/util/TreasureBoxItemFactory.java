@@ -31,7 +31,12 @@ public class TreasureBoxItemFactory {
             try {
                 meta.addEnchant(org.bukkit.enchantments.Enchantment.LUCK, 1, true);
                 meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
-            } catch (Throwable ignore) {}
+            } catch (Exception e) {
+                if (plugin.getConfig().getBoolean("settings.debug", false)) {
+                    plugin.getLogger().warning("为宝箱添加发光效果失败: " + e.getMessage());
+                }
+                // 非关键功能，继续执行
+            }
         }
         meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, boxId);
         item.setItemMeta(meta);

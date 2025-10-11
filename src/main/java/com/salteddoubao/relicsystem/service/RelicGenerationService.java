@@ -77,8 +77,14 @@ public class RelicGenerationService {
         for (Map.Entry<String, RelicManager.AttributePoolConfig.MainEntry> e : pool.mainStats.entrySet()) {
             try {
                 RelicStatType t = RelicStatType.valueOf(e.getKey());
-                if (e.getValue().slots.contains(slot.name())) candidates.add(t);
-            } catch (Exception ignore) {}
+                if (e.getValue().slots.contains(slot.name())) {
+                    candidates.add(t);
+                }
+            } catch (IllegalArgumentException ex) {
+                plugin.getLogger().warning("主词条配置中存在无效的属性类型: " + e.getKey());
+            } catch (Exception ex) {
+                plugin.getLogger().warning("处理主词条 " + e.getKey() + " 时出错: " + ex.getMessage());
+            }
         }
         if (!candidates.isEmpty()) {
             type = candidates.get(random.nextInt(candidates.size()));
@@ -144,7 +150,11 @@ public class RelicGenerationService {
                 if (w <= 0) continue;
                 bag.add(Map.entry(t, w));
                 total += w;
-            } catch (Exception ignore) {}
+            } catch (IllegalArgumentException ex) {
+                plugin.getLogger().warning("副词条配置中存在无效的属性类型: " + e.getKey());
+            } catch (Exception ex) {
+                plugin.getLogger().warning("处理副词条 " + e.getKey() + " 时出错: " + ex.getMessage());
+            }
         }
         if (total <= 0 || bag.isEmpty()) return null;
         int r = random.nextInt(total) + 1;

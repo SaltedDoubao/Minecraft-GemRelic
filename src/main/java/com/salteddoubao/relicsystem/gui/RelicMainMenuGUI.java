@@ -19,14 +19,13 @@ import java.util.List;
  */
 public class RelicMainMenuGUI {
     public static final String TITLE = "§6§l圣遗物系统";
-    private final MinecraftRelicSystem plugin;
     
     // 按钮位置
     private static final int EQUIP_SLOT = 20;  // 装备管理
     private static final int WAREHOUSE_SLOT = 24;  // 仓库管理
     
     public RelicMainMenuGUI(MinecraftRelicSystem plugin) {
-        this.plugin = plugin;
+        // 构造器保留用于依赖注入，即使当前未使用plugin字段
     }
     
     public void open(Player player) {

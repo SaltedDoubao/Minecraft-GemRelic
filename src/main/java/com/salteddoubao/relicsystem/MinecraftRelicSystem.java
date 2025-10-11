@@ -17,6 +17,7 @@ import com.salteddoubao.relicsystem.service.AttributePlusBridge;
 import com.salteddoubao.relicsystem.storage.IRelicProfileManager;
 import com.salteddoubao.relicsystem.storage.StorageFactory;
 import com.salteddoubao.relicsystem.util.RelicItemConverter;
+import com.salteddoubao.relicsystem.util.ExceptionHandler;
 
 /**
  * RelicSystem 插件主类
@@ -37,6 +38,7 @@ public class MinecraftRelicSystem extends JavaPlugin {
     private RelicGenerationService relicGenerationService;
     private TreasureBoxManager treasureBoxManager;
     private AttributePlusBridge attributePlusBridge;
+    private ExceptionHandler exceptionHandler;
 
     @Override
     public void onEnable() {
@@ -77,10 +79,20 @@ public class MinecraftRelicSystem extends JavaPlugin {
         try {
             if (relicEffectService != null) {
                 for (Player p : getServer().getOnlinePlayers()) {
-                    try { relicEffectService.clear(p); } catch (Throwable ignore) {}
+                    try {
+                        relicEffectService.clear(p);
+                    } catch (Exception e) {
+                        getLogger().warning("清理玩家属性失败: " + p.getName() + " - " + e.getMessage());
+                        // 继续处理其他玩家
+                    }
                 }
             }
-        } catch (Throwable ignore) {}
+        } catch (Exception e) {
+            // AP未启用或清理失败，不影响插件卸载
+            if (getConfig().getBoolean("settings.debug", false)) {
+                getLogger().fine("AP属性清理跳过: " + e.getMessage());
+            }
+        }
 
         // 保存所有在线玩家的圣遗物数据
         if (relicProfileManager != null) {
@@ -97,6 +109,7 @@ public class MinecraftRelicSystem extends JavaPlugin {
         getLogger().info("正在初始化管理器...");
         
         // 初始化基础工具
+        exceptionHandler = new ExceptionHandler(this);
         relicItemConverter = new RelicItemConverter(this);
 
         // 初始化存储系统
@@ -171,6 +184,7 @@ public class MinecraftRelicSystem extends JavaPlugin {
     public RelicGenerationService getRelicGenerationService() { return relicGenerationService; }
     public TreasureBoxManager getTreasureBoxManager() { return treasureBoxManager; }
     public AttributePlusBridge getAttributePlusBridge() { return attributePlusBridge; }
+    public ExceptionHandler getExceptionHandler() { return exceptionHandler; }
 
     // 仅重载圣遗物配置
     public void reloadRelicConfig() {

@@ -12,6 +12,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import com.salteddoubao.relicsystem.MinecraftRelicSystem;
 import com.salteddoubao.relicsystem.relic.*;
+import com.salteddoubao.relicsystem.util.RelicDisplayUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -169,17 +170,17 @@ public class RelicEquipmentGUI {
         RelicSet setRef = plugin.getRelicManager().getRelicSet(relic.getSetId());
         Material material = (setRef != null && setRef.getTemplateMaterial() != null)
                 ? setRef.getTemplateMaterial()
-                : getRarityMaterial(relic.getRarity());
+                : RelicDisplayUtils.getRarityMaterial(relic.getRarity());
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         
         if (meta != null) {
             String setName = setRef != null ? setRef.getName() : relic.getSetId();
-            meta.displayName(Component.text("§a[已装备] " + getRarityColor(relic.getRarity()) + setName)
+            meta.displayName(Component.text("§a[已装备] " + RelicDisplayUtils.getRarityColor(relic.getRarity()) + setName)
                 .decoration(TextDecoration.ITALIC, false));
             
             List<Component> lore = new ArrayList<>();
-            lore.add(Component.text("§7部位: §f" + getSlotDisplayName(relic.getSlot())));
+            lore.add(Component.text("§7部位: §f" + RelicDisplayUtils.getSlotDisplayName(relic.getSlot())));
             lore.add(Component.text("§7等级: §f" + relic.getLevel()));
             lore.add(Component.text("§7"));
             lore.add(Component.text("§6主词条:"));
@@ -211,12 +212,12 @@ public class RelicEquipmentGUI {
     }
     
     private ItemStack createEmptySlot(RelicSlot slot) {
-        Material material = getSlotMaterial(slot);
+        Material material = RelicDisplayUtils.getSlotMaterial(slot);
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         
         if (meta != null) {
-            meta.displayName(Component.text("§7" + getSlotDisplayName(slot) + " §8[空]")
+            meta.displayName(Component.text("§7" + RelicDisplayUtils.getSlotDisplayName(slot) + " §8[空]")
                 .decoration(TextDecoration.ITALIC, false));
             meta.lore(List.of(Component.text("§7此部位未装备圣遗物"), Component.text("§7前往仓库选择圣遗物装备")));
             item.setItemMeta(meta);
@@ -238,45 +239,6 @@ public class RelicEquipmentGUI {
         return item;
     }
     
-    private Material getRarityMaterial(RelicRarity rarity) {
-        return switch (rarity) {
-            case WHITE -> Material.QUARTZ;
-            case GREEN -> Material.EMERALD;
-            case BLUE -> Material.LAPIS_LAZULI;
-            case PURPLE -> Material.AMETHYST_SHARD;
-            case GOLD -> Material.GOLD_INGOT;
-        };
-    }
-    
-    private String getRarityColor(RelicRarity rarity) {
-        return switch (rarity) {
-            case WHITE -> "§f";
-            case GREEN -> "§a";
-            case BLUE -> "§9";
-            case PURPLE -> "§d";
-            case GOLD -> "§6";
-        };
-    }
-    
-    private Material getSlotMaterial(RelicSlot slot) {
-        return switch (slot) {
-            case FLOWER -> Material.BLUE_ORCHID;
-            case PLUME -> Material.FEATHER;
-            case SANDS -> Material.CLOCK;
-            case GOBLET -> Material.POTION;
-            case CIRCLET -> Material.PLAYER_HEAD;
-        };
-    }
-    
-    private String getSlotDisplayName(RelicSlot slot) {
-        return switch (slot) {
-            case FLOWER -> "生之花";
-            case PLUME -> "死之羽";
-            case SANDS -> "时之沙";
-            case GOBLET -> "空之杯";
-            case CIRCLET -> "理之冠";
-        };
-    }
     
     // 获取槽位索引的方法
     public static int getFlowerSlot() { return FLOWER_SLOT; }

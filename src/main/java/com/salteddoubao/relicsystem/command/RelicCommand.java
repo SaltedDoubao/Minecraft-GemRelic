@@ -11,7 +11,6 @@ import com.salteddoubao.relicsystem.gui.*;
 import com.salteddoubao.relicsystem.manager.RelicManager;
 import com.salteddoubao.relicsystem.relic.*;
 import com.salteddoubao.relicsystem.storage.DataMigration;
-import com.salteddoubao.relicsystem.storage.IRelicProfileManager;
 import com.salteddoubao.relicsystem.util.RelicItemConverter;
 import com.salteddoubao.relicsystem.service.RelicGenerationService;
 
@@ -244,7 +243,6 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
                 }
                 
                 sender.sendMessage("§e开始迁移您的圣遗物数据到独立存储系统...");
-                sender.sendMessage("§7注意：新系统类似末影箱原理，但不占用您的末影箱空间");
                 
                 if (migration.backupOldData(migrationPlayer)) {
                     sender.sendMessage("§a已备份原始数据");

@@ -13,6 +13,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import com.salteddoubao.relicsystem.MinecraftRelicSystem;
 import com.salteddoubao.relicsystem.relic.*;
+import com.salteddoubao.relicsystem.util.RelicDisplayUtils;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -62,7 +63,7 @@ public class RelicWarehouseGUI {
         
         String title = TITLE_PREFIX;
         if (filterSlot != null) {
-            title += " - " + getSlotDisplayName(filterSlot);
+            title += " - " + RelicDisplayUtils.getSlotDisplayName(filterSlot);
         }
         title += " (" + (page + 1) + ")";
         title += " | §e排序: " + sortMode.getDisplay();
@@ -151,7 +152,7 @@ public class RelicWarehouseGUI {
         }
         
         // 筛选按钮
-        String filterText = filterSlot != null ? getSlotDisplayName(filterSlot) : "全部";
+        String filterText = filterSlot != null ? RelicDisplayUtils.getSlotDisplayName(filterSlot) : "全部";
         inv.setItem(FILTER_SLOT, createGuiItem(Material.HOPPER, Component.text("§e筛选: " + filterText), 
             List.of(Component.text("§7点击切换筛选条件"), Component.text("§7当前筛选: " + filterText))));
 
@@ -195,18 +196,18 @@ public class RelicWarehouseGUI {
         RelicSet setRef = plugin.getRelicManager().getRelicSet(relic.getSetId());
         Material material = (setRef != null && setRef.getTemplateMaterial() != null)
                 ? setRef.getTemplateMaterial()
-                : getRarityMaterial(relic.getRarity());
+                : RelicDisplayUtils.getRarityMaterial(relic.getRarity());
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         
         if (meta != null) {
             String setName = setRef != null ? setRef.getName() : relic.getSetId();
-            meta.displayName(Component.text(getRarityColor(relic.getRarity()) + setName + " - " + getSlotDisplayName(relic.getSlot()))
+            meta.displayName(Component.text(RelicDisplayUtils.getRarityColor(relic.getRarity()) + setName + " - " + RelicDisplayUtils.getSlotDisplayName(relic.getSlot()))
                 .decoration(TextDecoration.ITALIC, false));
             
             List<Component> lore = new ArrayList<>();
             lore.add(Component.text("§7等级: §f" + relic.getLevel()));
-            lore.add(Component.text("§7稀有度: " + getRarityColor(relic.getRarity()) + relic.getRarity().getStars() + "★"));
+            lore.add(Component.text("§7稀有度: " + RelicDisplayUtils.getRarityColor(relic.getRarity()) + relic.getRarity().getStars() + "★"));
             lore.add(Component.text("§7"));
             lore.add(Component.text("§6主词条:"));
             lore.add(Component.text("  " + relic.getMainStat().getType().getDisplay() + ": §a" + 
@@ -237,7 +238,12 @@ public class RelicWarehouseGUI {
                 try {
                     meta.addEnchant(org.bukkit.enchantments.Enchantment.DURABILITY, 1, true);
                     meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
-                } catch (Throwable ignore) {}
+                } catch (Exception e) {
+                    if (plugin.getConfig().getBoolean("settings.debug", false)) {
+                        plugin.getLogger().warning("为圣遗物添加发光效果失败: " + e.getMessage());
+                    }
+                    // 非关键功能，继续执行
+                }
             }
             item.setItemMeta(meta);
         }
@@ -246,12 +252,12 @@ public class RelicWarehouseGUI {
     }
 
     private ItemStack createEmptySlotItem(RelicSlot slot) {
-        Material material = getSlotMaterial(slot);
+        Material material = RelicDisplayUtils.getSlotMaterial(slot);
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         
         if (meta != null) {
-            meta.displayName(Component.text("§7" + getSlotDisplayName(slot) + " §8[空]")
+            meta.displayName(Component.text("§7" + RelicDisplayUtils.getSlotDisplayName(slot) + " §8[空]")
                 .decoration(TextDecoration.ITALIC, false));
             meta.lore(List.of(Component.text("§7此部位未装备圣遗物"), Component.text("§e点击从仓库选择")));
             item.setItemMeta(meta);
@@ -273,45 +279,6 @@ public class RelicWarehouseGUI {
         return item;
     }
 
-    private Material getRarityMaterial(RelicRarity rarity) {
-        return switch (rarity) {
-            case WHITE -> Material.QUARTZ;
-            case GREEN -> Material.EMERALD;
-            case BLUE -> Material.LAPIS_LAZULI;
-            case PURPLE -> Material.AMETHYST_SHARD;
-            case GOLD -> Material.GOLD_INGOT;
-        };
-    }
-
-    private String getRarityColor(RelicRarity rarity) {
-        return switch (rarity) {
-            case WHITE -> "§f";
-            case GREEN -> "§a";
-            case BLUE -> "§9";
-            case PURPLE -> "§d";
-            case GOLD -> "§6";
-        };
-    }
-
-    private Material getSlotMaterial(RelicSlot slot) {
-        return switch (slot) {
-            case FLOWER -> Material.BLUE_ORCHID;
-            case PLUME -> Material.FEATHER;
-            case SANDS -> Material.CLOCK;
-            case GOBLET -> Material.POTION;
-            case CIRCLET -> Material.PLAYER_HEAD;
-        };
-    }
-
-    private String getSlotDisplayName(RelicSlot slot) {
-        return switch (slot) {
-            case FLOWER -> "生之花";
-            case PLUME -> "死之羽";
-            case SANDS -> "时之沙";
-            case GOBLET -> "空之杯";
-            case CIRCLET -> "理之冠";
-        };
-    }
 
     // 获取槽位索引相关方法  
     public static int[] getWarehouseSlots() { return WAREHOUSE_SLOTS; }
