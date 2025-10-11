@@ -4,22 +4,22 @@ package com.salteddoubao.relicsystem.relic;
  * 圣遗物属性类型（示例，后续可表驱动）
  */
 public enum RelicStatType {
-    // === 基础属性（对应 AP lang/zh_CN.yml 29-40 行）===
-    HP_FLAT(false, "§a生命值"),
-    ATK_FLAT(false, "§c攻击力"),
-    DEF_FLAT(false, "§7防御"),
+    // === 基础属性（对应 AP AttributePlus 属性名称）===
+    HP_FLAT(false, "§a生命力"),
+    ATK_FLAT(false, "§c物理伤害"),
+    DEF_FLAT(false, "§7物理防御"),
     
-    HP_PCT(true, "§a生命值%"),
-    ATK_PCT(true, "§c攻击力%"),
-    DEF_PCT(true, "§7防御%"),
+    HP_PCT(true, "§a生命力%"),
+    ATK_PCT(true, "§c物理伤害%"),
+    DEF_PCT(true, "§7物理防御%"),
 
-    // === 攻击属性（对应 AP lang/zh_CN.yml 29-31, 41-71）===
+    // === 攻击属性（对应 AP AttributePlus 属性名称）===
     PVP_ATK(true, "§cPVP伤害"),
     PVE_ATK(true, "§cPVE伤害"),
     REAL_ATK(false, "§6真实伤害"),
     
     CRIT_CHANCE(true, "§e暴击几率"),
-    CRIT_RATE(true, "§6暴伤倍率"),
+    CRIT_RATE(true, "§6暴伤倍率"),  // 与AP保持一致
     
     VAMPIRE_CHANCE(true, "§c吸血几率"),
     VAMPIRE_RATE(true, "§c吸血倍率"),
@@ -39,7 +39,7 @@ public enum RelicStatType {
     SEE_THROUGH(true, "§6护甲穿透"),
     BREAK_SHIELD(true, "§3破盾几率"),
 
-    // === 防御属性（对应 AP lang/zh_CN.yml 34-36, 38, 43-51）===
+    // === 防御属性（对应 AP AttributePlus 属性名称）===
     PVP_DEF(false, "§aPVP防御"),
     PVE_DEF(false, "§aPVE防御"),
     
@@ -55,7 +55,7 @@ public enum RelicStatType {
     SHIELD_BLOCK(true, "§6盾牌格挡率"),
     REMOTE_IMMUNE(true, "§6箭伤免疫率"),
 
-    // === 其他属性（对应 AP lang/zh_CN.yml 39-40, 58-59）===
+    // === 其他属性（对应 AP AttributePlus 属性名称）===
     RESTORE(false, "§a生命恢复"),
     RESTORE_RATIO(true, "§a百分比恢复"),
     MOVE_SPEED(true, "§b移速加成");

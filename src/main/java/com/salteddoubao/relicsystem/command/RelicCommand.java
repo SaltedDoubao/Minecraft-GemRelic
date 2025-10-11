@@ -32,12 +32,13 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§6/relic help §7- 查看命令帮助");
             sender.sendMessage("§6/relic list [page] §7- 列出已配置的套装（支持翻页）");
             sender.sendMessage("§6/relic gui §7- 打开圣遗物界面");
+            sender.sendMessage("§6/relic stats §7- 查看当前遗物属性汇总");
+            sender.sendMessage("§6/relic refresh §7- 刷新遗物属性到AP");
             if (sender.hasPermission("mrs.admin")) {
                 sender.sendMessage("§c=== 管理员命令 ===");
                 sender.sendMessage("§6/relic reload §7- 重载圣遗物配置");
                 sender.sendMessage("§6/relic gen <setId> <slot|ALL> <rarity> <level> §7- 生成到背包");
                 sender.sendMessage("§6/relic give <player> <setId> <slot|ALL> <rarity> <level> §7- 发放圣遗物");
-                sender.sendMessage("§6/relic test §7- 发放测试圣遗物");
                 sender.sendMessage("§6/relic box give <player> <boxId> [amount] §7- 发放宝箱");
                 sender.sendMessage("§6/relic migrate §7- 数据迁移到独立存储系统");
                 sender.sendMessage("§6/relic migration-status §7- 查看迁移状态");
@@ -53,12 +54,13 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
                 sender.sendMessage("§6/relic help §7- 查看命令帮助");
                 sender.sendMessage("§6/relic list [page] §7- 列出套装（翻页）");
                 sender.sendMessage("§6/relic gui §7- 打开圣遗物界面");
+                sender.sendMessage("§6/relic stats §7- 查看当前遗物属性汇总");
+                sender.sendMessage("§6/relic refresh §7- 刷新遗物属性到AP");
                 if (sender.hasPermission("mrs.admin")) {
                     sender.sendMessage("§c管理员命令:");
                     sender.sendMessage("§6/relic reload §7- 重载圣遗物配置");
                     sender.sendMessage("§6/relic gen <setId> <slot|ALL> <rarity> <level> §7- 生成并发放到背包");
                     sender.sendMessage("§6/relic give <player> <setId> <slot|ALL> <rarity> <level> §7- 发放圣遗物");
-                    sender.sendMessage("§6/relic test §7- 发放测试圣遗物");
                     sender.sendMessage("§6/relic box give <player> <boxId> [amount] §7- 发放宝箱");
                     sender.sendMessage("§6/relic migrate §7- 迁移旧数据");
                     sender.sendMessage("§6/relic migration-status §7- 查看迁移状态");
@@ -110,6 +112,56 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
                 }
                 new RelicMainMenuGUI(plugin).open((Player) sender);
                 return true;
+            case "stats":
+                if (!(sender instanceof Player)) {
+                    sender.sendMessage("§c仅玩家可用");
+                    return true;
+                }
+                {
+                    Player player = (Player) sender;
+                    PlayerRelicProfile profile = plugin.getRelicProfileManager().get(player);
+                    Map<RelicStatType, Double> stats = plugin.getStatAggregationService().aggregate(profile);
+                    
+                    sender.sendMessage("§6§l==== 圣遗物属性汇总 ====");
+                    sender.sendMessage("§e装备件数: §a" + profile.getEquipped().size());
+                    
+                    if (stats.isEmpty()) {
+                        sender.sendMessage("§7未装备任何圣遗物或无有效属性");
+                    } else {
+                        sender.sendMessage("§e属性列表:");
+                        for (Map.Entry<RelicStatType, Double> entry : stats.entrySet()) {
+                            String display = entry.getKey().getDisplay();
+                            double value = entry.getValue();
+                            String formatted = String.format("%.1f", value);
+                            String suffix = entry.getKey().isPercent() ? "%" : "";
+                            sender.sendMessage("  " + display + ": §a" + formatted + suffix);
+                        }
+                    }
+                    
+                    // 显示AP集成状态
+                    if (plugin.getAttributePlusBridge() != null && plugin.getAttributePlusBridge().isEnabled()) {
+                        sender.sendMessage("§e§lAttributePlus: §a已启用");
+                        sender.sendMessage("§7提示: 使用 §f/ap stats §7查看AP面板");
+                    } else {
+                        sender.sendMessage("§e§lAttributePlus: §c未启用");
+                    }
+                }
+                return true;
+            case "refresh":
+                if (!(sender instanceof Player)) {
+                    sender.sendMessage("§c仅玩家可用");
+                    return true;
+                }
+                {
+                    Player player = (Player) sender;
+                    PlayerRelicProfile profile = plugin.getRelicProfileManager().get(player);
+                    plugin.getRelicEffectService().refresh(player, profile);
+                    sender.sendMessage("§a已刷新遗物属性！");
+                    if (plugin.getAttributePlusBridge() != null && plugin.getAttributePlusBridge().isEnabled()) {
+                        sender.sendMessage("§7属性已同步到 AttributePlus，请使用 §f/ap stats §7查看");
+                    }
+                }
+                return true;
             case "gen":
                 if (!sender.hasPermission("mrs.admin")) { sender.sendMessage("§c无权限"); return true; }
                 if (!(sender instanceof Player)) { sender.sendMessage("§c仅玩家可用"); return true; }
@@ -144,29 +196,6 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
                     generated = 1;
                 }
                 sender.sendMessage("§a已生成并发放: " + genSet + " x" + generated + " (Lv." + genLevel + ")");
-                return true;
-            case "test":
-                if (!sender.hasPermission("mrs.admin")) { sender.sendMessage("§c无权限"); return true; }
-                if (!(sender instanceof Player)) { sender.sendMessage("§c仅玩家可用"); return true; }
-                Player tp = (Player) sender;
-                RelicItemConverter converter = plugin.getRelicItemConverter();
-
-                int given = 0;
-                for (RelicSlot testSlot : RelicSlot.values()) {
-                    RelicData test = new RelicData(
-                        UUID.randomUUID(), "gladiator", testSlot, RelicRarity.GOLD, 20, 0,
-                        new RelicMainStat(RelicStatType.ATK_PCT, 46.6),
-                        List.of(
-                            new RelicSubstat(RelicStatType.CRIT_CHANCE, 7.8),
-                            new RelicSubstat(RelicStatType.CRIT_RATE, 14.0),
-                            new RelicSubstat(RelicStatType.MOVE_SPEED, 4.2)
-                        ),
-                        false
-                    );
-                    tp.getInventory().addItem(converter.toItemStack(test));
-                    given++;
-                }
-                sender.sendMessage("§a已向背包发放 " + given + " 件测试圣遗物");
                 return true;
             case "give":
                 if (!sender.hasPermission("mrs.admin")) { sender.sendMessage("§c无权限"); return true; }
@@ -291,9 +320,9 @@ public class RelicCommand implements CommandExecutor, TabCompleter {
         List<String> completions = new ArrayList<>();
         
         if (args.length == 1) {
-            completions.addAll(List.of("help", "list", "gui"));
+            completions.addAll(List.of("help", "list", "gui", "stats", "refresh"));
             if (sender.hasPermission("mrs.admin")) {
-                completions.addAll(List.of("test", "give", "gen", "box", "reload", "migrate", "migration-status"));
+                completions.addAll(List.of("give", "gen", "box", "reload", "migrate", "migration-status"));
             }
             return filterCompletions(completions, args[0]);
         }

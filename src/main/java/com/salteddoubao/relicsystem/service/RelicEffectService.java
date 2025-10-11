@@ -53,24 +53,19 @@ public class RelicEffectService {
         // 若启用 AttributePlus 集成，则优先通过桥接下发属性；失败则回退至内置属性引擎
         if (plugin.getAttributePlusBridge() != null && plugin.getAttributePlusBridge().isEnabled()) {
             try {
+                plugin.getLogger().info("[Relic] 正在通过 AttributePlus 下发属性 - 玩家: " + player.getName() + ", 属性数量: " + statSum.size());
                 boolean applied = plugin.getAttributePlusBridge().apply(player, statSum);
                 if (applied) {
-                    // AP 已接管，确保立即刷新一次属性供 /ap stats 面板读取
-                    try {
-                        Class<?> apiClass2 = Class.forName("org.serverct.ersha.api.AttributeAPI");
-                        apiClass2.getMethod("updateAttribute", org.bukkit.entity.LivingEntity.class).invoke(null, player);
-                    } catch (Exception e) {
-                        if (plugin.getConfig().getBoolean("settings.debug", false)) {
-                            plugin.getLogger().warning("[AP] 触发属性重算失败: " + e.getMessage());
-                        }
-                        // 非关键操作，忽略失败
-                    }
-                    return; // AP 成功接管
+                    plugin.getLogger().info("[Relic] AttributePlus 属性下发成功 - 玩家: " + player.getName());
+                    return; // AP 成功接管（updateAttribute已在Bridge中延迟调用）
                 } else {
                     plugin.getLogger().warning("[Relic] AttributePlus 未能成功下发属性，回退到内置属性应用");
                 }
             } catch (Throwable t) {
-                plugin.getLogger().warning("向 AttributePlus 下发属性时发生异常，回退内置属性: " + t.getMessage());
+                plugin.getLogger().warning("[Relic] 向 AttributePlus 下发属性时发生异常，回退内置属性: " + t.getMessage());
+                if (plugin.getConfig().getBoolean("settings.debug", false)) {
+                    t.printStackTrace();
+                }
             }
         }
 
@@ -121,26 +116,32 @@ public class RelicEffectService {
     }
 
     public void clear(Player player) {
+        plugin.getLogger().info("[Relic] 清理玩家属性 - 玩家: " + player.getName());
         // 清理缓存与原版属性
         cachedStats.remove(player.getUniqueId());
         List<Applied> list = applied.remove(player.getUniqueId());
-        if (list == null) return;
-        for (Applied a : list) {
-            AttributeInstance inst = player.getAttribute(a.attribute);
-            if (inst != null && a.modifier != null) {
-                try {
-                    inst.removeModifier(a.modifier);
-                } catch (Exception e) {
-                    plugin.getLogger().warning("移除属性修饰失败 [" + a.attribute + "]: " + e.getMessage());
+        if (list != null) {
+            for (Applied a : list) {
+                AttributeInstance inst = player.getAttribute(a.attribute);
+                if (inst != null && a.modifier != null) {
+                    try {
+                        inst.removeModifier(a.modifier);
+                    } catch (Exception e) {
+                        plugin.getLogger().warning("移除属性修饰失败 [" + a.attribute + "]: " + e.getMessage());
+                    }
                 }
             }
         }
         // 若启用 AP 集成，清理 AP 侧属性交付
         if (plugin.getAttributePlusBridge() != null && plugin.getAttributePlusBridge().isEnabled()) {
             try {
+                plugin.getLogger().info("[Relic] 正在清理 AttributePlus 属性 - 玩家: " + player.getName());
                 plugin.getAttributePlusBridge().clear(player);
             } catch (Throwable t) {
                 plugin.getLogger().warning("清理 AttributePlus 属性时发生异常: " + t.getMessage());
+                if (plugin.getConfig().getBoolean("settings.debug", false)) {
+                    t.printStackTrace();
+                }
             }
         }
     }

@@ -23,11 +23,7 @@ public class AttributePlusBridge {
     private final Set<String> percentageKeys;
     private final double percentScale;
     // 命令模式（回退）
-    private final boolean commandModeEnabled;
-    private final List<String> applyEachTemplates;
-    private final List<String> clearAllTemplates;
     private final Map<UUID, Map<String, Double>> lastApplied = new HashMap<>();
-    private final DecimalFormat numberFormat = new DecimalFormat("0.####");
 
     public AttributePlusBridge(MinecraftRelicSystem plugin) {
         this.plugin = plugin;
@@ -41,10 +37,6 @@ public class AttributePlusBridge {
         this.apiMode = plugin.getConfig().getBoolean("integration.attributeplus.api_mode", true);
         this.percentScale = plugin.getConfig().getDouble("integration.attributeplus.percent_scale", 1.0);
         this.percentageKeys = new java.util.HashSet<>(plugin.getConfig().getStringList("integration.attributeplus.percentage_keys"));
-        // 命令模式读取（回退）
-        this.commandModeEnabled = plugin.getConfig().getBoolean("integration.attributeplus.command_mode.enabled", true);
-        this.applyEachTemplates = new ArrayList<>(plugin.getConfig().getStringList("integration.attributeplus.command_mode.apply_each"));
-        this.clearAllTemplates = new ArrayList<>(plugin.getConfig().getStringList("integration.attributeplus.command_mode.clear_all"));
         
         // 启动时输出配置状态
         if (enabled) {
@@ -60,13 +52,11 @@ public class AttributePlusBridge {
         try {
             debug = plugin.getConfig().getBoolean("settings.debug", false);
         } catch (Exception e) {
-            // 配置读取失败，使用默认值false
             plugin.getLogger().fine("读取调试配置失败: " + e.getMessage());
         }
 
-        // 将圣遗物词条按"数值属性/百分比属性"分别汇总，同一 AP 键进行合并，避免覆盖
-        HashMap<String, Number[]> valueMap = new HashMap<>(); // key -> [flatValue, 0]
-        HashMap<String, Double> pctMap = new HashMap<>();     // key -> percentValue (已按 percentScale 缩放)
+        // 生成AP格式的属性字符串列表（像Lore一样的格式）
+        List<String> attributeLines = new ArrayList<>();
 
         // 优先解析 API 类以转换占位键为服务器键（中文）
         for (Map.Entry<RelicStatType, Double> entry : stats.entrySet()) {
@@ -74,81 +64,92 @@ public class AttributePlusBridge {
             double raw = entry.getValue();
             if (raw == 0) continue;
             String apKey = map.get(type);
-            if (apKey == null || apKey.isEmpty()) continue;
+            if (apKey == null || apKey.isEmpty()) {
+                if (debug) plugin.getLogger().warning("[AP] 属性 " + type + " 没有stat_map映射，跳过");
+                continue;
+            }
             
             // 必须使用中文服务器键（AP 的 attributeNameList 使用中文键索引）
             String serverKey = resolveServerKey(null, apKey);
+            // 移除颜色代码（AP不识别颜色代码）
+            String cleanKey = serverKey.replaceAll("§[0-9a-fk-or]", "");
+            
             boolean pctByType = false;
             try {
                 pctByType = type.name().endsWith("_PCT");
             } catch (Exception e) {
-                // 属性类型判断失败，使用默认值false
                 plugin.getLogger().fine("判断属性类型失败: " + e.getMessage());
             }
             boolean pctByKey = (percentageKeys != null && percentageKeys.contains(apKey));
             boolean asPercent = pctByType || pctByKey;
 
+            // 生成AP格式的属性行
+            String attributeLine;
             if (asPercent) {
-                double add = raw * percentScale;
-                pctMap.merge(serverKey, add, Double::sum);
+                // 百分比格式：属性名: 数值 (%)
+                double scaledValue = raw * percentScale;
+                attributeLine = cleanKey + ": " + String.format("%.1f", scaledValue) + " (%)";
             } else {
-                Number[] arr = valueMap.get(serverKey);
-                double current = (arr != null ? arr[0].doubleValue() : 0.0) + raw;
-                valueMap.put(serverKey, new Number[]{ current, 0 });
+                // 固定值格式：属性名: 数值
+                attributeLine = cleanKey + ": " + String.format("%.1f", raw);
+            }
+            
+            attributeLines.add(attributeLine);
+            
+            if (debug) {
+                plugin.getLogger().info("[AP Debug] 生成属性行: " + type + " -> \"" + attributeLine + "\" (asPercent=" + asPercent + ")");
             }
         }
 
-        // 若无任何可下发键，视为"无需变更"，返回成功以避免回退到内置引擎
-        if (valueMap.isEmpty() && pctMap.isEmpty()) {
+        // 若无任何可下发属性
+        if (attributeLines.isEmpty()) {
             if (debug) plugin.getLogger().info("[AP] 无可下发属性，跳过并视为成功");
             return true;
         }
 
-        // 输出详细的下发内容（包含展开的 Number[] 数组）
-        plugin.getLogger().info("[AP] 准备下发 " + player.getName());
-        for (Map.Entry<String, Number[]> e : valueMap.entrySet()) {
-            plugin.getLogger().info("  valueMap[" + e.getKey() + "] = [" + e.getValue()[0] + ", " + e.getValue()[1] + "]");
-        }
-        for (Map.Entry<String, Double> e : pctMap.entrySet()) {
-            plugin.getLogger().info("  pctMap[" + e.getKey() + "] = " + e.getValue());
+        // 输出详细的属性列表
+        plugin.getLogger().info("[AP] 准备下发 " + player.getName() + " - percentScale=" + percentScale + ", 属性数量=" + attributeLines.size());
+        plugin.getLogger().info("[AP] 属性字符串列表:");
+        for (String line : attributeLines) {
+            plugin.getLogger().info("  \"" + line + "\"");
         }
 
-        // 优先 API 模式
+        // 优先 API 模式 - 使用List<String>格式（让AP像读取Lore一样解析）
         if (apiMode) {
             try {
                 Class<?> apiClass = Class.forName("org.serverct.ersha.api.AttributeAPI");
                 Object attributeData = apiClass.getMethod("getAttrData", org.bukkit.entity.LivingEntity.class).invoke(null, player);
-                Object attributeSource = apiClass.getMethod(
-                        "createStaticAttributeSource",
-                        java.util.HashMap.class, java.util.HashMap.class
-                ).invoke(null, valueMap, pctMap);
 
                 Class<?> attributeDataClass = Class.forName("org.serverct.ersha.attribute.data.AttributeData");
-                Class<?> attributeSourceClass = Class.forName("org.serverct.ersha.attribute.data.AttributeSource");
-                apiClass.getMethod("addSourceAttribute", attributeDataClass, String.class, attributeSourceClass)
-                        .invoke(null, attributeData, namespace, attributeSource);
                 
-                plugin.getLogger().info("[AP] addSourceAttribute 调用成功");
+                // 使用List<String>格式的addSourceAttribute方法（让AP解析字符串）
+                apiClass.getMethod("addSourceAttribute", attributeDataClass, String.class, List.class)
+                        .invoke(null, attributeData, namespace, attributeLines);
+                
+                plugin.getLogger().info("[AP] addSourceAttribute(List) 调用成功");
 
-                // 记录一次已应用键集合（用于命令模式清理时的参考）
+                // 记录已应用
                 HashMap<String, Double> appliedJoin = new HashMap<>();
-                for (Map.Entry<String, Number[]> e : valueMap.entrySet()) {
-                    appliedJoin.merge(e.getKey(), e.getValue()[0].doubleValue(), Double::sum);
-                }
-                for (Map.Entry<String, Double> e : pctMap.entrySet()) {
-                    appliedJoin.merge(e.getKey(), e.getValue(), Double::sum);
+                for (Map.Entry<RelicStatType, Double> e : stats.entrySet()) {
+                    String apKey = map.get(e.getKey());
+                    if (apKey != null) {
+                        String serverKey = resolveServerKey(null, apKey);
+                        appliedJoin.merge(serverKey, e.getValue(), Double::sum);
+                    }
                 }
                 lastApplied.put(player.getUniqueId(), appliedJoin);
-                // 触发 AP 重算，确保 /ap stats 面板即时刷新
-                try {
-                    Class<?> apiClass2 = Class.forName("org.serverct.ersha.api.AttributeAPI");
-                    apiClass2.getMethod("updateAttribute", org.bukkit.entity.LivingEntity.class).invoke(null, player);
-                } catch (Exception e) {
-                    if (plugin.getConfig().getBoolean("settings.debug", false)) {
-                        plugin.getLogger().warning("[AP] 触发属性重算失败: " + e.getMessage());
+                // 触发 AP 重算，确保 /ap stats 面板即时刷新（延迟1 tick确保属性已写入）
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                    try {
+                        Class<?> apiClass2 = Class.forName("org.serverct.ersha.api.AttributeAPI");
+                        apiClass2.getMethod("updateAttribute", org.bukkit.entity.LivingEntity.class).invoke(null, player);
+                        plugin.getLogger().info("[AP] updateAttribute 调用成功 - 玩家: " + player.getName());
+                    } catch (Exception e) {
+                        if (plugin.getConfig().getBoolean("settings.debug", false)) {
+                            plugin.getLogger().warning("[AP] 触发属性重算失败: " + e.getMessage());
+                        }
                     }
-                    // 非关键操作，忽略失败
-                }
+                }, 1L);
                 return !(appliedJoin.isEmpty());
             } catch (Exception apiError) {
                 plugin.getLogger().warning("[AP] API 模式调用失败，回退命令模式: " + apiError.getMessage());
@@ -158,46 +159,7 @@ public class AttributePlusBridge {
             }
         }
 
-        // 命令模式回退
-        if (commandModeEnabled && !applyEachTemplates.isEmpty()) {
-            // 命令模式无法区分“数值/百分比”两类，尽力合并为一个数值下发
-            HashMap<String, Double> translatedForCmd = new HashMap<>();
-            for (Map.Entry<String, Number[]> e : valueMap.entrySet()) {
-                translatedForCmd.merge(e.getKey(), e.getValue()[0].doubleValue(), Double::sum);
-            }
-            for (Map.Entry<String, Double> e : pctMap.entrySet()) {
-                translatedForCmd.merge(e.getKey(), e.getValue(), Double::sum);
-            }
-            for (Map.Entry<String, Double> e : translatedForCmd.entrySet()) {
-                String key = e.getKey();
-                double value = e.getValue();
-                for (String tpl : applyEachTemplates) {
-                    String cmd = tpl
-                            .replace("%player%", player.getName())
-                            .replace("%uuid%", player.getUniqueId().toString())
-                            .replace("%namespace%", namespace)
-                            .replace("%key%", key)
-                            .replace("%value%", numberFormat.format(value));
-                    boolean ok = Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
-                    if (!ok) {
-                        plugin.getLogger().warning("[AP] 命令执行失败, 请检查 AttributePlus 指令模板是否正确: " + cmd);
-                    }
-                }
-            }
-            lastApplied.put(player.getUniqueId(), translatedForCmd);
-            // 命令模式下同样请求一次重算
-            try {
-                Class<?> apiClass2 = Class.forName("org.serverct.ersha.api.AttributeAPI");
-                apiClass2.getMethod("updateAttribute", org.bukkit.entity.LivingEntity.class).invoke(null, player);
-            } catch (Exception e) {
-                if (plugin.getConfig().getBoolean("settings.debug", false)) {
-                    plugin.getLogger().warning("[AP] 命令模式触发属性重算失败: " + e.getMessage());
-                }
-                // 非关键操作，忽略失败
-            }
-            return !translatedForCmd.isEmpty();
-        }
-
+        plugin.getLogger().warning("[AP] API 模式调用失败，属性下发失败");
         return false;
     }
 
@@ -218,7 +180,7 @@ public class AttributePlusBridge {
         placeholderToChinese.put("pve_defense", "PVE防御");
         placeholderToChinese.put("real_attack", "真实伤害");
         placeholderToChinese.put("crit", "暴击几率");
-        placeholderToChinese.put("crit_rate", "暴击倍率");
+        placeholderToChinese.put("crit_rate", "暴伤倍率");  // 注意：AP中是"暴伤倍率"不是"暴击倍率"
         placeholderToChinese.put("vampire", "吸血几率");
         placeholderToChinese.put("vampire_rate", "吸血倍率");
         placeholderToChinese.put("shoot_speed", "箭矢速度");
@@ -271,16 +233,19 @@ public class AttributePlusBridge {
                 apiClass.getMethod("takeSourceAttribute", attributeDataClass, String.class)
                         .invoke(null, attributeData, namespace);
                 lastApplied.remove(player.getUniqueId());
-                // 清理后请求一次重算
-                try {
-                    Class<?> apiClass2 = Class.forName("org.serverct.ersha.api.AttributeAPI");
-                    apiClass2.getMethod("updateAttribute", org.bukkit.entity.LivingEntity.class).invoke(null, player);
-                } catch (Exception e) {
-                    if (plugin.getConfig().getBoolean("settings.debug", false)) {
-                        plugin.getLogger().warning("[AP] 清理后触发属性重算失败: " + e.getMessage());
+                plugin.getLogger().info("[AP] takeSourceAttribute 调用成功");
+                // 清理后请求一次重算（延迟1 tick）
+                plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                    try {
+                        Class<?> apiClass2 = Class.forName("org.serverct.ersha.api.AttributeAPI");
+                        apiClass2.getMethod("updateAttribute", org.bukkit.entity.LivingEntity.class).invoke(null, player);
+                        plugin.getLogger().info("[AP] 清理后 updateAttribute 调用成功 - 玩家: " + player.getName());
+                    } catch (Exception e) {
+                        if (plugin.getConfig().getBoolean("settings.debug", false)) {
+                            plugin.getLogger().warning("[AP] 清理后触发属性重算失败: " + e.getMessage());
+                        }
                     }
-                    // 非关键操作，忽略失败
-                }
+                }, 1L);
                 return;
             } catch (Exception apiError) {
                 plugin.getLogger().warning("[AP] API 清理失败，回退命令模式: " + apiError.getMessage());
@@ -290,50 +255,7 @@ public class AttributePlusBridge {
             }
         }
 
-        // 命令模式清理
-        if (commandModeEnabled) {
-            if (!clearAllTemplates.isEmpty()) {
-                for (String tpl : clearAllTemplates) {
-                    String cmd = tpl
-                            .replace("%player%", player.getName())
-                            .replace("%uuid%", player.getUniqueId().toString())
-                            .replace("%namespace%", namespace);
-                    boolean ok = Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
-                    if (!ok) {
-                        plugin.getLogger().warning("[AP] 清理命令执行失败, 请检查 AttributePlus 指令模板是否正确: " + cmd);
-                    }
-                }
-            } else {
-                Map<String, Double> applied = lastApplied.getOrDefault(player.getUniqueId(), Collections.emptyMap());
-                if (!applied.isEmpty() && !applyEachTemplates.isEmpty()) {
-                    for (String key : applied.keySet()) {
-                        for (String tpl : applyEachTemplates) {
-                            String cmd = tpl
-                                    .replace("%player%", player.getName())
-                                    .replace("%uuid%", player.getUniqueId().toString())
-                                    .replace("%namespace%", namespace)
-                                    .replace("%key%", key)
-                                    .replace("%value%", "0");
-                            boolean ok = Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
-                            if (!ok) {
-                                plugin.getLogger().warning("[AP] 清理命令执行失败, 请检查 AttributePlus 指令模板是否正确: " + cmd);
-                            }
-                        }
-                    }
-                }
-            }
-        }
         lastApplied.remove(player.getUniqueId());
-        // 命令模式清理后也触发一次重算
-        try {
-            Class<?> apiClass2 = Class.forName("org.serverct.ersha.api.AttributeAPI");
-            apiClass2.getMethod("updateAttribute", org.bukkit.entity.LivingEntity.class).invoke(null, player);
-        } catch (Exception e) {
-            if (plugin.getConfig().getBoolean("settings.debug", false)) {
-                plugin.getLogger().warning("[AP] 命令模式清理后触发属性重算失败: " + e.getMessage());
-            }
-            // 非关键操作，忽略失败
-        }
     }
 
 }
